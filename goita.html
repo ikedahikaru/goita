@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ごいた オンライン対戦</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.1/peerjs.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#ffffff;--bg2:#f5f5f5;--bg3:#ebebeb;
+    --border:#d0d0d0;--border2:#e0e0e0;
+    --text:#1a1a1a;--text2:#555;--text3:#888;
+    --danger:#d94040;--info:#2b7fd4;--success:#2a9d5c;--warning:#d47d00;
+    --radius:8px;--radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
+      --border:#3a3a3a;--border2:#333;
+      --text:#f0f0f0;--text2:#aaa;--text3:#666;
+      --danger:#e06060;--info:#5b9fd4;--success:#4abf7c;--warning:#e09020;
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+  #app{width:100%;max-width:620px;padding:12px;}
+  button{font-family:inherit;cursor:pointer;border-radius:var(--radius);border:none;padding:10px 20px;font-size:14px;font-weight:500;background:var(--text);color:var(--bg);transition:opacity .15s;}
+  button:hover{opacity:.85}
+  button.secondary{background:var(--bg2);color:var(--text);border:1px solid var(--border);}
+  button.danger{background:var(--danger);color:#fff;}
+  input{font-family:inherit;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;outline:none;width:100%;}
+  input:focus{border-color:var(--info);}
+
+  /* ===== NET OVERLAY ===== */
+  #net-ov{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;overflow-y:auto;}
+  .nt{font-family:'Noto Serif JP',serif;font-size:32px;font-weight:500;color:var(--text);}
+  .ns{font-size:13px;color:var(--text2);text-align:center;line-height:1.6;}
+  .nc{display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;}
+  .ninput{padding:12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:22px;text-align:center;letter-spacing:8px;font-family:monospace;font-weight:700;width:100%;outline:none;}
+  .ninput::placeholder{letter-spacing:1px;font-size:13px;font-family:sans-serif;font-weight:400;}
+  .ncode{font-size:44px;font-weight:700;letter-spacing:10px;color:var(--text);font-family:monospace;background:var(--bg2);padding:14px 28px;border-radius:var(--radius);border:1px solid var(--border);}
+  .slot{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border2);}
+  .slot-num{font-size:12px;color:var(--text3);width:26px;flex-shrink:0;}
+  .slot-name{font-size:14px;color:var(--text);flex:1;}
+  .slot-tag{font-size:11px;padding:2px 8px;border-radius:999px;}
+  .tag-you{background:#d4f0e2;color:#1a7a45;}
+  .tag-conn{background:#d0e8f8;color:#1a5a8a;}
+  .tag-cpu{background:var(--bg3);color:var(--text3);}
+  .tag-wait{background:#fff3d0;color:#7a5000;}
+  @media(prefers-color-scheme:dark){
+    .tag-you{background:#1a3d2a;color:#4abf7c;}
+    .tag-conn{background:#1a2d3d;color:#5b9fd4;}
+    .tag-wait{background:#3d2a00;color:#d47d00;}
+  }
+  .divider{display:flex;align-items:center;gap:10px;width:100%;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border2);}
+  .divider span{font-size:11px;color:var(--text3);}
+  #pstatus{font-size:12px;color:var(--text2);min-height:18px;text-align:center;}
+
+  /* ===== GAME ===== */
+  #gw{display:none;padding:10px 0 20px;}
+  .gt polygon.gb{fill:#fff3d0;stroke:#d47d00;stroke-width:0.8;transition:fill .15s,stroke .15s}
+  .gt text.gk{fill:#111;font-family:'Noto Serif JP',serif;font-weight:900}
+  .gt.cl{cursor:pointer;transition:transform .15s}.gt.cl:hover{transform:translateY(-5px)}
+  .gt.cl:hover polygon.gb{fill:#ffe8a0;stroke:#b06000}
+  .gt.hl polygon.gb{fill:#d4f0e2;stroke:var(--success);stroke-width:1.4}
+  .gt.atk polygon.gb{fill:#fff3d0;stroke:#d47d00;stroke-width:1.6}
+  .gt.fd polygon.gb{fill:#fff3d0;stroke:#d47d00}
+  .gt.dimmed polygon.gb{fill:#fff3d0;stroke:#d47d00;opacity:.35}
+  .gt.dimmed{cursor:not-allowed}
+  @media(prefers-color-scheme:dark){
+    .gt polygon.gb{fill:#3d2a00;stroke:#e09020;}
+    .gt.cl:hover polygon.gb{fill:#4d3500;stroke:#c07000;}
+    .gt.hl polygon.gb{fill:#1a3d2a;stroke:var(--success);}
+    .gt.atk polygon.gb{fill:#3d2a00;stroke:#e09020;stroke-width:1.6;}
+    .gt.fd polygon.gb{fill:#3d2a00;stroke:#e09020;}
+    .gt.dimmed polygon.gb{fill:#3d2a00;stroke:#e09020;}
+    .gt text.gk{fill:#f0f0f0;}
+  }
+  @keyframes gland{from{opacity:0;transform:scale(.5) translateY(-14px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  .gt.landed{animation:gland .3s cubic-bezier(.22,1,.36,1) both}
+  @keyframes gshow{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  @keyframes gpulse{0%,100%{opacity:1}50%{opacity:.55}}
+  @keyframes gp{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes nashirq{0%,100%{opacity:1}50%{opacity:.65}}
+  .gind{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--border);vertical-align:middle;margin-left:3px}
+  .gind.on{background:var(--warning);animation:gp 1.1s infinite}
+  #cb{width:400px;height:400px;flex-shrink:0;border-radius:var(--radius);border:1px solid var(--border);}
+  .nashi-req{background:#fff3d0!important;border-color:var(--warning)!important;color:var(--warning)!important;font-weight:700!important;animation:nashirq 1s infinite}
+  @media(prefers-color-scheme:dark){.nashi-req{background:#3d2a00!important;}}
+  .board-wrap{position:relative;border:1px solid var(--border2);border-radius:var(--radius-lg);background:var(--bg2);}
+  .board-inner{padding:10px 10px 0;}
+  .log-bar{border-top:1px solid var(--border2);padding:7px 14px;background:var(--bg2);border-radius:0 0 var(--radius-lg) var(--radius-lg);}
+  .ov-base{display:none;position:absolute;inset:0;background:var(--bg);z-index:10;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;border-radius:var(--radius-lg);}
+  #ty-ov{z-index:15;}
+  .hand-row{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;}
+  .side-box{border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);padding:10px 4px;text-align:center;width:76px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .side-cnt{font-size:28px;font-weight:500;font-family:'Noto Serif JP',serif;color:var(--text);line-height:1.1;}
+  /* rules */
+  .rl-row{display:grid;grid-template-columns:28px 1fr;gap:8px 10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--border2);}
+  .rl-no{font-size:11px;font-weight:600;color:var(--text3);background:var(--bg2);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .rl-txt{font-size:13px;color:var(--text2);line-height:1.75;}.rl-txt strong{color:var(--text);}
+  /* sub panel */
+  #sub-panel{display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+  .sub-sec{padding:10px 14px;border-bottom:1px solid var(--border2);}
+  .sub-sec:last-child{border-bottom:none;}
+  .sub-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ======== NETWORK OVERLAY ======== -->
+<div id="net-ov">
+  <div id="sv" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:320px;">
+    <div class="nt">ごいた</div>
+    <div class="ns">能登半島の伝統遊戯<br>2対2チーム戦 オンライン対戦</div>
+    <div class="nc" style="margin-top:8px;">
+      <button onclick="NET_create()" style="font-size:15px;padding:14px;">🎮 ルームを作る（ホスト）</button>
+      <div class="divider"><span>または</span></div>
+      <input id="codeIn" class="ninput" placeholder="ルームコードを入力" maxlength="5"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+      <button onclick="NET_join()" style="font-size:15px;padding:14px;">🔗 コードで参加</button>
+      <div class="divider"><span>または</span></div>
+      <button onclick="NET_solo()" class="secondary" style="font-size:14px;">👤 ひとりで遊ぶ（CPU対戦）</button>
+    </div>
+    <div id="pstatus"></div>
+  </div>
+  <div id="lv" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:360px;">
+    <div style="font-size:15px;color:var(--text2);">ルームコード</div>
+    <div id="codeDisp" class="ncode"></div>
+    <div class="ns" id="lv-hint"></div>
+    <div id="slots" style="width:100%;display:flex;flex-direction:column;gap:6px;"></div>
+    <div id="lobbyMsg" style="font-size:13px;color:var(--text2);text-align:center;min-height:18px;"></div>
+    <div id="startWrap" style="display:none;flex-direction:column;align-items:center;gap:6px;">
+      <button id="startBtn" onclick="NET_hostStart()" style="font-size:15px;padding:12px 36px;">ゲーム開始！</button>
+      <div style="font-size:11px;color:var(--text3);">2〜4人で開始できます。空き席はCPUが担当します。</div>
+    </div>
+    <button onclick="NET_back()" class="secondary" style="font-size:12px;margin-top:4px;">← 戻る</button>
+  </div>
+</div>
+
+<!-- ======== GAME AREA ======== -->
+<div id="gw">
+  <!-- コンパクトヘッダー（スコア＋詳細トグル） -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0 10px;">
+    <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:600;color:var(--danger);">紅</span>
+      <span id="sc-a" style="font-size:26px;font-weight:700;font-family:'Noto Serif JP',serif;color:var(--text);">0</span>
+      <span style="font-size:11px;color:var(--text3);">点</span>
+      <span style="font-size:13px;color:var(--text3);margin:0 4px;">vs</span>
+      <span id="sc-b" style="font-size:26px;font-weight:700;font-family:'Noto Serif JP',serif;color:var(--text);">0</span>
+      <span style="font-size:11px;color:var(--text3);">点</span>
+      <span style="font-size:12px;font-weight:600;color:var(--info);">白</span>
+      <span style="font-size:11px;color:var(--text3);margin-left:6px;">目標 150点</span>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button onclick="toggleSub()" class="secondary" id="sub-toggle" style="font-size:12px;padding:5px 10px;">📋 詳細</button>
+      <button onclick="toggleRules()" class="secondary" style="font-size:12px;padding:5px 10px;">📖 ルール</button>
+    </div>
+  </div>
+
+  <!-- サブ画面（ログ・接続情報） -->
+  <div id="sub-panel">
+    <div class="sub-sec">
+      <div class="sub-label">ゲームログ</div>
+      <div id="log" style="max-height:70px;overflow-y:auto;"></div>
+    </div>
+    <div class="sub-sec">
+      <div class="sub-label">接続情報・プレイヤー</div>
+      <div id="player-info" style="font-size:11px;color:var(--text2);line-height:1.8;">—</div>
+    </div>
+  </div>
+
+  <!-- メインボード -->
+  <div class="board-wrap">
+    <div id="ov" class="ov-base">
+      <div id="ov-msg" style="font-size:17px;font-weight:500;font-family:'Noto Serif JP',serif;color:var(--text);line-height:1.9;"></div>
+      <div id="ov-acts"></div>
+    </div>
+    <div id="ty-ov" class="ov-base">
+      <div id="ty-badge" style="font-size:22px;font-weight:500;font-family:'Noto Serif JP',serif;color:var(--text);"></div>
+      <div id="ty-player" style="font-size:12px;color:var(--text2);"></div>
+      <div id="ty-tiles" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin:4px 0;"></div>
+      <div id="ty-msg" style="font-size:13px;color:var(--text2);line-height:1.7;max-width:340px;"></div>
+      <div id="ty-acts" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px;"></div>
+    </div>
+    <div class="board-inner">
+      <!-- 中段：中央ボードのみ -->
+      <div style="display:flex;justify-content:center;margin-bottom:8px;">
+        <div id="cb"></div>
+      </div>
+      <!-- あなた -->
+      <div style="display:flex;flex-direction:column;align-items:center;padding-bottom:10px;">
+        <div id="lbl-bottom" style="font-size:11px;font-weight:500;color:var(--danger);margin-bottom:4px;">
+          あなた <span class="gind" id="ind-bottom"></span>
+        </div>
+        <div id="h-bottom" class="hand-row"></div>
+        <div id="nashi-wrap" style="display:none;margin-top:8px;">
+          <button id="nashi-btn" onclick="doPass()" style="font-size:14px;padding:8px 30px;" class="secondary">なし（パス）</button>
+        </div>
+      </div>
+    </div>
+    <!-- ステータスバー -->
+    <div class="log-bar">
+      <div id="st" style="font-size:13px;font-weight:500;color:var(--text);text-align:center;">待機中</div>
+    </div>
+  </div>
+</div><!-- /gw -->
+
+<!-- ======== RULES OVERLAY ======== -->
+<div id="rules-ov" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);overflow-y:auto;padding:20px;">
+  <div style="max-width:520px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border2);">
+      <div>
+        <div style="font-size:16px;font-weight:500;color:var(--text);font-family:'Noto Serif JP',serif;">ごいた 公式ルール</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">能登ごいた保存会 公式ルール第2版準拠（2016年11月28日）</div>
+      </div>
+      <button onclick="toggleRules()" class="secondary" style="font-size:13px;padding:5px 12px;">✕ 閉じる</button>
+    </div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:0;">
+
+      <div class="rl-row">
+        <div class="rl-no">1</div>
+        <div class="rl-txt"><strong>チーム編成</strong><br>4人で2対2のチーム戦。<strong style="color:var(--danger)">紅組</strong>（あなた＋上家）vs <strong style="color:var(--info)">白組</strong>（右家＋左家）。パートナーは向かい側。あがった人が次の勝負の親となります。</div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">2</div>
+        <div class="rl-txt"><strong>駒の種類と枚数（全32枚・1人8枚）</strong><br>
+          王（玉）<strong>計2枚</strong>　飛・角 <strong>各2枚</strong>　金・銀・馬・香 <strong>各4枚</strong>　し <strong>10枚</strong>
+        </div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">3</div>
+        <div class="rl-txt"><strong>手番の流れ</strong><br>上段（受け）→下段（攻め）に1枚ずつ出して次の人の手番になります。1回の勝負で1人が出せるタイミングは計4回。受けができる駒を持っていても「無し」でパスできます。</div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">4</div>
+        <div class="rl-txt"><strong>親の第一手</strong><br>親はまず「受け」の段に<strong>裏向きで1枚出し</strong>、次に「攻め」の段に<strong>表向きで1枚出します</strong>。</div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">5</div>
+        <div class="rl-txt"><strong>受けと攻め</strong><br>「しりとり」のように<strong>同じ字の駒を表向きに出す</strong>のが「受け」。受けた後に「攻め」を出します。全員なしの場合は裏向きで1枚出してから再び攻めます。</div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">6</div>
+        <div class="rl-txt"><strong>無し（パス）</strong><br>受けができる・できないに関わらずパスできます。受けられない場合は「なし」ボタンがハイライトされます。</div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">7</div>
+        <div class="rl-txt"><strong>王（おう）の特殊ルール</strong><br>
+          ■受け：<strong>王は「香」「し」以外を受けられます</strong>（「切る」という）。<br>
+          ■攻め：<strong>誰かが王で切って場に王が出ているときのみ</strong>攻めに使えます。<br>
+          例外①「だまだま」：王を2枚持っている場合、攻めに出せます。<br>
+          例外②「あがりの駒」：最後の8枚目として出せます。
+        </div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">8</div>
+        <div class="rl-txt"><strong>あがりと得点計算</strong><br>
+          最初に出しきった人が「あがり」。<strong>最後の8枚目の得点</strong>があがったペアに加算されます。<br>
+          王（玉）<strong>50点</strong>　飛・角 <strong>40点</strong>　金・銀 <strong>30点</strong>　馬・香 <strong>20点</strong>　し <strong>10点</strong><br>
+          ■<strong>倍付け</strong>：裏向き7枚目と8枚目（あがり）が同じ字なら<strong>得点2倍</strong>。
+        </div>
+      </div>
+      <div class="rl-row">
+        <div class="rl-no">9</div>
+        <div class="rl-txt"><strong>勝利条件</strong><br>どちらか一方のペアの合計点が<strong>150点以上</strong>になれば試合終了です。</div>
+      </div>
+      <div class="rl-row" style="border-bottom:none;">
+        <div class="rl-no">10</div>
+        <div class="rl-txt"><strong>手役（初期配牌の特別ルール）</strong><br>
+          ■<strong>五し</strong>（し5枚）：「五し」を宣言しし駒5枚を公開。味方と相談して「続ける」か「配り直す」かを決めます。両ペアが配り直しに同意した場合のみ配り直します。<br>
+          ■<strong>六し</strong>（し6枚）：全駒公開。し以外の高い方の点を獲得（2枚同じなら2倍）。宣言者が次の親。<br>
+          ■<strong>七し</strong>（し7枚）：全駒公開。し以外の点数の<strong>2倍</strong>を獲得。宣言者が次の親。<br>
+          ■<strong>八し</strong>（し8枚）：全駒公開。<strong>100点獲得</strong>。宣言者が次の親。<br>
+          ■<strong>ペア五し</strong>：同じペアの2人が共に五しの場合、そのペアが<strong>150点獲得し試合勝利</strong>。<br>
+          ■<strong>敵・味方それぞれ五し</strong>：片方のペアが「続ける」と宣言すれば配り直しなし。
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ===== CONSTANTS =====
+const TT=['王','飛','角','金','銀','馬','香','し'];
+const TC={'王':2,'飛':2,'角':2,'金':4,'銀':4,'馬':4,'香':4,'し':10};
+const KN={'王':'おう','飛':'ひ','角':'かく','金':'きん','銀':'ぎん','馬':'うま','香':'こう','し':'し'};
+const PTS={'王':50,'飛':40,'角':40,'金':30,'銀':30,'馬':20,'香':20,'し':10};
+const DLY=820; const GOAL=150;
+const PEER_PFX='goita-v3-';
+const PEER_CFG={host:'0.peerjs.com',port:443,secure:true,path:'/'};
+
+// ===== NETWORK STATE =====
+const NET={mode:'init',myPid:0,roomCode:'',peer:null,hostConn:null,conns:{},humanPids:new Set(),names:['P1','P2','P3','P4']};
+
+function genCode(){return Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[0|Math.random()*24]).join('');}
+function isHuman(pid){return NET.humanPids.has(pid);}
+function PN(pid){return['あなた','右家','上家','左家'][(pid-NET.myPid+4)%4];}
+const team=p=>p%2===0?0:1;
+function playerLabel(pid){return`${PN(pid)}（${'紅白'.split('')[team(pid)]}組）`;}
+
+// ===== GAME STATE =====
+let G={h:[[],[],[],[]],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,tyData:null,tyActData:null};
+let prevAt=null;
+
+// ===== HELPERS =====
+function recvOpts(hand,at){
+  if(at==='王')return hand.reduce((a,t,i)=>t==='王'?[...a,i]:a,[]);
+  if(at==='し'||at==='香')return hand.reduce((a,t,i)=>t===at?[...a,i]:a,[]);
+  return hand.reduce((a,t,i)=>(t===at||t==='王')?[...a,i]:a,[]);
+}
+function canRecv(hand,at){return recvOpts(hand,at).length>0;}
+function cpuPickRecv(hand,at){const opts=recvOpts(hand,at);return opts.find(i=>hand[i]!=='王')??opts[0];}
+function canOuAtk(hand,isLast){return isLast||G.ouInPlay||hand.filter(t=>t==='王').length>=2;}
+function cpuPickAtk(hand){
+  if(!hand.length)return 0;
+  const isLast=hand.length===1;
+  const valid=hand.filter(t=>t!=='王'||canOuAtk(hand,isLast));
+  const useH=valid.length?valid:hand;
+  const cnt={};useH.forEach(t=>{cnt[t]=(cnt[t]||0)+1;});
+  const mx=Math.max(...Object.values(cnt));
+  const cands=useH.filter(t=>cnt[t]===mx);
+  const t=cands[0|Math.random()*cands.length];
+  const idx=hand.indexOf(t);return idx>=0?idx:0;
+}
+function mkQ(p){return[(p+1)%4,(p+2)%4,(p+3)%4];}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function mkDeck(){return shuffle(TT.flatMap(t=>Array(TC[t]).fill(t)));}
+
+// ===== STATE CHANGE =====
+function afterChange(){
+  if(NET.mode==='host')broadcastState();
+  render();autoCPU();
+}
+function autoCPU(){
+  const ph=G.ph;
+  if(ph==='parent_def'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_def')hostDef(G.atr,0|Math.random()*G.h[G.atr].length);},DLY);}
+  else if(ph==='parent_atk'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_atk')hostAtk(G.atr,cpuPickAtk(G.h[G.atr]));},DLY);}
+  else if(ph==='respond'){hostProcessQ();}
+}
+function broadcastState(){
+  const state=JSON.parse(JSON.stringify({G,humanPids:[...NET.humanPids],names:NET.names}));
+  Object.values(NET.conns).forEach(c=>{try{c.send({type:'state',state});}catch(e){}});
+}
+
+// ===== GAME LOGIC =====
+function hostDef(p,idx){
+  if(G.ph!=='parent_def'||G.atr!==p)return;
+  const t=G.h[p][idx];G.h[p].splice(idx,1);
+  G.used[p].push({t,tp:'def',hidden:true});
+  G.defTile=t;G.defOwner=p;G.ph='parent_atk';
+  addLog(`${playerLabel(p)}が守り牌を伏せた`);afterChange();
+}
+function hostAtk(p,idx){
+  if(G.ph!=='parent_atk'||G.atr!==p)return;
+  const t=G.h[p][idx];
+  if(t==='王'&&!canOuAtk(G.h[p],G.h[p].length===1))return;
+  G.h[p].splice(idx,1);G.used[p].push({t,tp:'atk'});G.at=t;G.atr=p;
+  if(t==='王')G.ouInPlay=true;
+  addLog(`${playerLabel(p)}が「${t}」で攻め！`);
+  if(!G.h[p].length){hostEndRound(p);return;}
+  G.ph='respond';G.rq=mkQ(p);G.ri=0;afterChange();
+}
+function hostRecv(p,idx){
+  if(G.ph!=='player_recv'||G.responder!==p)return;
+  if(!recvOpts(G.h[p],G.at).includes(idx))return;
+  const rt=G.h[p][idx];G.h[p].splice(idx,1);G.used[p].push({t:rt,tp:'def'});
+  if(rt==='王')G.ouInPlay=true;
+  addLog(`${playerLabel(p)}が「${rt}」で${rt==='王'?'切り':'受け'}`);
+  G.ph='player_atk';afterChange();
+  if(!isHuman(p)){setTimeout(()=>{if(G.ph==='player_atk')hostPAtk(p,cpuPickAtk(G.h[p]));},DLY);}
+}
+function hostPAtk(p,idx){
+  if(G.ph!=='player_atk'||G.responder!==p)return;
+  const t=G.h[p][idx];
+  if(t==='王'&&!canOuAtk(G.h[p],G.h[p].length===1))return;
+  G.h[p].splice(idx,1);G.used[p].push({t,tp:'atk'});G.at=t;G.atr=p;
+  if(t==='王')G.ouInPlay=true;
+  addLog(`${playerLabel(p)}が「${t}」で攻め！`);
+  if(!G.h[p].length){hostEndRound(p);return;}
+  G.ph='respond';G.rq=mkQ(p);G.ri=0;afterChange();
+}
+function hostPass(p){
+  if(G.ph!=='player_recv'||G.responder!==p)return;
+  addLog(`${playerLabel(p)}はなし（パス）`);
+  G.ri++;G.ph='respond';afterChange();
+}
+function hostCpuRA(p){
+  const ri=cpuPickRecv(G.h[p],G.at);
+  const rt=G.h[p][ri];G.h[p].splice(ri,1);G.used[p].push({t:rt,tp:'def'});
+  if(rt==='王')G.ouInPlay=true;
+  const ai=cpuPickAtk(G.h[p]);
+  const at=G.h[p][ai];G.h[p].splice(ai,1);G.used[p].push({t:at,tp:'atk'});
+  G.at=at;G.atr=p;
+  if(at==='王')G.ouInPlay=true;
+  addLog(`${playerLabel(p)}が「${rt}」で${rt==='王'?'切り':'受け'}、「${at}」で攻め！`);
+  if(!G.h[p].length){hostEndRound(p);return;}
+  G.ph='respond';G.rq=mkQ(p);G.ri=0;afterChange();
+}
+function hostProcessQ(){
+  if(G.ph!=='respond')return;
+  if(G.ri>=G.rq.length){hostAllPass();return;}
+  const resp=G.rq[G.ri];
+  if(isHuman(resp)){
+    G.ph='player_recv';G.responder=resp;afterChange();
+    setStatus(`「${G.at}」— ${canRecv(G.h[resp],G.at)?G.at+(G.at!=='し'&&G.at!=='香'?'または王':'のみ')+'で受けるかなし':'受けられません。なし（パス）'}を押してください`);
+  } else {
+    setTimeout(()=>{
+      if(G.ph!=='respond')return;
+      if(canRecv(G.h[resp],G.at)){hostCpuRA(resp);}
+      else{addLog(`${playerLabel(resp)}は受けられない`);G.ri++;G.ph='respond';afterChange();}
+    },DLY);
+  }
+}
+function hostAllPass(){
+  addLog(`全員なし。${playerLabel(G.atr)}が守り牌を出します`);
+  G.at=null;G.ph='parent_def';afterChange();
+  if(!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_def')hostDef(G.atr,0|Math.random()*G.h[G.atr].length);},DLY);}
+}
+function hostEndRound(winner){
+  G.ph='idle';
+  const tw=team(winner);const pts=PTS[G.at]||0;
+  const doubled=G.defOwner===winner&&G.defTile===G.at;
+  const fp=doubled?pts*2:pts;G.sc[tw]+=fp;
+  const tn=['紅組','白組'][tw];const db=doubled?'（倍付け！×2）':'';
+  addLog(`${playerLabel(winner)}が上がり！${tn}に${fp}点${db}`);
+  if(NET.mode==='host')broadcastState();render();G.atr=winner;
+  const vic=G.sc[0]>=GOAL?0:G.sc[1]>=GOAL?1:-1;
+  let msg;
+  if(vic>=0){const vtn=['紅組','白組'][vic];msg=`${vtn}が${GOAL}点に達し<br>試合終了！<br><small style="color:var(--text2)">紅組${G.sc[0]}点 / 白組${G.sc[1]}点</small>`;}
+  else{msg=`${playerLabel(winner)}が上がり！<br>${tn}に${fp}点${db}<br><small style="color:var(--text2)">紅組${G.sc[0]}点 / 白組${G.sc[1]}点</small>`;}
+  document.getElementById('ov-msg').innerHTML=msg;
+  document.getElementById('ov-acts').innerHTML=vic>=0?'<button onclick="initGame()">もう一度</button>':'<button onclick="hostNewRound()">次の勝負</button>';
+  setTimeout(()=>{document.getElementById('ov').style.display='flex';},700);
+}
+
+// ===== 手役 =====
+function showTy(badge,player,tiles,msg,acts,waitFor,actData){
+  G.ph='teyaku';G.tyData={badge,player,tiles,msg,acts,waitFor};G.tyActData=actData||{};afterChange();
+}
+function hostCheckTeyaku(){
+  G.ph='idle';render();
+  const shiC=G.h.map(h=>h.filter(t=>t==='し').length);
+  for(let p=0;p<4;p++){
+    if(shiC[p]===8){
+      const tw=team(p);G.sc[tw]+=100;G.atr=p;addLog(`${playerLabel(p)}が八し！100点獲得`);
+      showTy('八し（はちし）',playerLabel(p),G.h[p].map(t=>({t,hidden:false})),
+        `全ての駒が「し」！<strong>${['紅','白'][tw]}組に100点獲得</strong>`,
+        [{label:'次の勝負へ',act:'next'}],-1,{name:'round',tw});return;
+    }
+  }
+  for(let p=0;p<4;p++){
+    if(shiC[p]===7){
+      const tw=team(p);const ns=G.h[p].filter(t=>t!=='し')[0]||'し';
+      const pts=(PTS[ns]||10)*2;G.sc[tw]+=pts;G.atr=p;addLog(`${playerLabel(p)}が七し！${pts}点獲得`);
+      showTy('七し（ななし）',playerLabel(p),G.h[p].map(t=>({t,hidden:false})),
+        `し以外「${ns}」の2倍！<strong>${['紅','白'][tw]}組に${pts}点獲得</strong>`,
+        [{label:'次の勝負へ',act:'next'}],-1,{name:'round',tw});return;
+    }
+  }
+  for(let p=0;p<4;p++){
+    if(shiC[p]===6){
+      const tw=team(p);const ns=G.h[p].filter(t=>t!=='し');
+      const same=ns[0]===ns[1];const maxP=Math.max(...ns.map(t=>PTS[t]||0));
+      const pts=same?maxP*2:maxP;G.sc[tw]+=pts;G.atr=p;addLog(`${playerLabel(p)}が六し！${pts}点獲得`);
+      showTy('六し（ろくし）',playerLabel(p),G.h[p].map(t=>({t,hidden:false})),
+        `し以外の高い方の点${same?'（2枚同じで2倍！）':''}<br><strong>${['紅','白'][tw]}組に${pts}点獲得</strong>`,
+        [{label:'次の勝負へ',act:'next'}],-1,{name:'round',tw});return;
+    }
+  }
+  const goshi=[0,1,2,3].filter(p=>shiC[p]>=5);
+  if(!goshi.length){hostStartSetup();return;}
+  if(goshi.includes(0)&&goshi.includes(2)){G.sc[0]+=GOAL;addLog('紅組がペア五し！試合勝利');
+    showTy('ペア五し！','あなたと上家（紅組）',G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
+      '紅組の2人がともに五し！<br><strong>紅組が150点獲得・試合勝利！</strong>',
+      [{label:'結果へ',act:'end'}],-1,{name:'end',tw:0});return;
+  }
+  if(goshi.includes(1)&&goshi.includes(3)){G.sc[1]+=GOAL;addLog('白組がペア五し！試合勝利');
+    showTy('ペア五し！','右家と左家（白組）',[],
+      '白組の2人がともに五し！<br><strong>白組が150点獲得・試合勝利！</strong>',
+      [{label:'結果へ',act:'end'}],-1,{name:'end',tw:1});return;
+  }
+  const p0Has=goshi.includes(0);const enemyG=goshi.filter(p=>team(p)!==0);
+  if(p0Has){
+    G.goshiCpuCont=!enemyG.length||Math.random()<0.6;
+    const note=enemyG.length?`<br>※${playerLabel(enemyG[0])}も五しを宣言。`:'';
+    showTy('五し（ごし）','あなた（紅組）',G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
+      `し駒5枚を公開。上家と相談してください。${note}<br>片方が「続ける」なら配り直しなし。`,
+      [{label:'このまま続ける',act:'goshi_cont'},{label:'配り直す',act:'goshi_redeal'}],
+      0,{name:'goshi'});
+  } else {
+    const fp=goshi[0];
+    showTy('五し（ごし）',playerLabel(fp),G.h[fp].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
+      `${playerLabel(fp)}が五しを宣言。<br>そのまま勝負を続けます。`,
+      [{label:'続行',act:'next'}],-1,{name:'goshi_cpu'});
+  }
+}
+function hostResolveTy(act,pid){
+  if(G.ph!=='teyaku')return;
+  const waitFor=G.tyData?.waitFor;
+  if(waitFor!==-1&&waitFor!==pid)return;
+  const{name,...aData}=G.tyActData||{};
+  G.ph='idle';G.tyData=null;G.tyActData=null;
+  if(NET.mode==='host')broadcastState();
+  if(name==='round'){const tw=aData.tw;if(G.sc[tw]>=GOAL){showEndState(tw);}else{hostNewRound();}}
+  else if(name==='end'){showEndState(aData.tw);}
+  else if(name==='goshi'){(act==='goshi_cont'||G.goshiCpuCont)?hostStartSetup():hostNewRound();}
+  else if(name==='goshi_cpu'){hostStartSetup();}
+}
+function showEndState(tw){
+  const vtn=['紅組','白組'][tw];
+  document.getElementById('ov-msg').innerHTML=`${vtn}が${GOAL}点に達し<br>試合終了！<br><small style="color:var(--text2)">紅組${G.sc[0]}点 / 白組${G.sc[1]}点</small>`;
+  document.getElementById('ov-acts').innerHTML='<button onclick="initGame()">もう一度</button>';
+  document.getElementById('ov').style.display='flex';
+}
+function hostNewRound(){
+  const d=mkDeck();const{sc,atr}=G;
+  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[...sc],goshiCpuCont:true,tyData:null,tyActData:null};
+  prevAt=null;document.getElementById('ov').style.display='none';document.getElementById('ty-ov').style.display='none';
+  addLog('次の勝負！');hostCheckTeyaku();
+}
+function hostStartSetup(){
+  G.ph='parent_def';afterChange();
+  if(isHuman(G.atr)){setStatus('① 守り牌を選んでください（裏向き）');}
+  else{setStatus(`${playerLabel(G.atr)}が守り牌を選んでいます…`);}
+}
+function initGame(){
+  if(NET.mode==='init')return;
+  const d=mkDeck();
+  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,tyData:null,tyActData:null};
+  prevAt=null;document.getElementById('ov').style.display='none';document.getElementById('ty-ov').style.display='none';
+  addLog('ゲームスタート！');if(NET.mode==='host'||NET.mode==='solo')hostCheckTeyaku();
+}
+
+// ===== INPUT =====
+function pAct(idx){
+  const pid=NET.myPid;const ph=G.ph;let action=null;
+  if(ph==='parent_def'&&G.atr===pid)action={type:'def',idx};
+  else if(ph==='parent_atk'&&G.atr===pid){if(G.h[pid][idx]==='王'&&!canOuAtk(G.h[pid],G.h[pid].length===1))return;action={type:'atk',idx};}
+  else if(ph==='player_recv'&&G.responder===pid){if(!recvOpts(G.h[pid],G.at).includes(idx))return;action={type:'recv',idx};}
+  else if(ph==='player_atk'&&G.responder===pid){if(G.h[pid][idx]==='王'&&!canOuAtk(G.h[pid],G.h[pid].length===1))return;action={type:'patk',idx};}
+  if(action)sendAct(action);
+}
+function doPass(){if(G.ph!=='player_recv'||G.responder!==NET.myPid)return;sendAct({type:'pass'});}
+function doTy(act){sendAct({type:'ty',act});}
+function sendAct(action){
+  if(NET.mode==='solo'||NET.mode==='host'){hostHandleAction(NET.myPid,action);}
+  else{try{NET.hostConn.send({type:'action',action});}catch(e){}}
+}
+function hostHandleAction(pid,action){
+  const{type,idx,act}=action;
+  if(type==='def')hostDef(pid,idx);
+  else if(type==='atk')hostAtk(pid,idx);
+  else if(type==='recv')hostRecv(pid,idx);
+  else if(type==='patk')hostPAtk(pid,idx);
+  else if(type==='pass')hostPass(pid);
+  else if(type==='ty')hostResolveTy(act,pid);
+}
+
+// ===== RENDERING =====
+function addLog(msg){const el=document.getElementById('log');el.insertAdjacentHTML('afterbegin',`<div style="font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2);padding:1px 0;">${msg}</div>`);while(el.children.length>8)el.removeChild(el.lastChild);}
+function setStatus(t){document.getElementById('st').textContent=t;}
+function showNashi(v){document.getElementById('nashi-wrap').style.display=v?'block':'none';const b=document.getElementById('nashi-btn');if(b&&!v)b.className='secondary';}
+function mkT(k,sz,o={}){
+  const m={md:[44,50,18,30],sm:[36,42,14,26],xs:[28,34,11,21]}[sz]||[44,50,18,30];
+  const[w,h,fs,ty]=m;
+  const pts=`${w/2},2 ${(w*.93).toFixed(1)},${(h*.22).toFixed(1)} ${w},${h} 0,${h} ${(w*.07).toFixed(1)},${(h*.22).toFixed(1)}`;
+  const cl=['gt',sz,o.cl?'cl':'',o.hl?'hl':'',o.fd?'fd':'',o.atk?'atk':'',o.dimmed?'dimmed':'',o.anim?'landed':''].filter(Boolean).join(' ');
+  const oc=o.oc?`onclick="${o.oc}"`:'';
+  const tc=o.dimmed?'var(--text3)':'';
+  const inner=o.fd?'':`<text class="gk" x="${w/2}" y="${ty}" text-anchor="middle" dominant-baseline="central" font-size="${fs}"${tc?` style="fill:${tc}"`:''}>${k}</text>`;
+  return`<svg class="${cl}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" ${oc}><polygon class="gb" points="${pts}"/>${inner}</svg>`;
+}
+function rotateTile(html,deg,w,h){
+  if(deg===0)return html;const abs=((deg%360)+360)%360;const swap=abs===90||abs===270;
+  const rw=swap?h:w,rh=swap?w:h;const tx=(rw-w)/2,ty=(rh-h)/2;
+  return`<div style="display:inline-block;width:${rw}px;height:${rh}px;position:relative;"><div style="position:absolute;left:${tx}px;top:${ty}px;transform:rotate(${deg}deg);transform-origin:${w/2}px ${h/2}px;">${html}</div></div>`;
+}
+function mkMicro(t,tp,hidden,isLast,isLive){
+  const w=28,h=34;
+  const pts=`${w/2},2 ${(w*.92).toFixed(1)},${(h*.22).toFixed(1)} ${w},${h} 0,${h} ${(w*.08).toFixed(1)},${(h*.22).toFixed(1)}`;
+  let fill,stroke,sw='0.9';
+  if(isLive){fill='#d4f0e2';stroke='#2a9d5c';sw='2';}
+  else if(hidden){fill='#fff3d0';stroke='#d47d00';}
+  else if(tp==='atk'){fill='#fff3d0';stroke='#d47d00';}
+  else{fill='#fff3d0';stroke='#d47d00';}
+  const la=isLive?';animation:gpulse 1.2s infinite':'';
+  const ea=isLast?'animation:gshow .22s ease-out both'+la:isLive?'animation:gpulse 1.2s infinite':'';
+  const sa=ea?`style="${ea}"`:'';
+  const tf=isLive?'#2a9d5c':'#111';
+  const ty=Math.round(h*0.64);
+  const tx=hidden?'':`<text x="${w/2}" y="${ty}" text-anchor="middle" dominant-baseline="central" font-size="16" font-family="'Noto Serif JP',serif" font-weight="900" style="fill:${tf};">${t}</text>`;
+  return`<svg ${sa} width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><polygon points="${pts}" style="fill:${fill};stroke:${stroke};stroke-width:${sw};"/>${tx}</svg>`;
+}
+function renderCB(){
+  const cb=document.getElementById('cb');const isNew=G.at&&G.at!==prevAt;prevAt=G.at;
+  // 28x34 tiles: GW=4*28+3*3=121, GH=2*34+3=71  board: 96+208+96=400
+  const GW=121,GH=71;const myB=NET.myPid;
+  const pids=[0,1,2,3].map(o=>(myB+o)%4);const degs=[0,-90,180,90];
+  function pg(pid,deg){
+    const used=G.used[pid];if(!used||!used.length)return'';
+    const lai=used.reduce((l,{tp},i)=>tp==='atk'?i:l,-1);
+    const isLP=G.at!==null&&pid===G.atr;
+    const dT=[],aT=[];
+    used.forEach(({t,tp,hidden},idx)=>{
+      const tile=mkMicro(t,tp,hidden,idx===used.length-1,isLP&&idx===lai);
+      if(tp==='atk')aT.push(tile);else dT.push(tile);
+    });
+    const grid=`<div style="width:${GW}px;height:${GH}px;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:3px;">${dT.slice(0,4).join('')}</div><div style="display:flex;gap:3px;">${aT.slice(0,4).join('')}</div></div>`;
+    return deg===0?grid:rotateTile(grid,deg,GW,GH);
+  }
+  let ctr='';
+  if(G.at){ctr=`${mkT(G.at,'md',{atk:true,anim:isNew})}`;}
+  else if(G.ph==='parent_def'){ctr=`<svg class="gt md fd" width="44" height="50" viewBox="0 0 44 50"><polygon class="gb" points="22,2 40.9,11 44,50 0,50 3.1,11"/></svg><div style="font-size:13px;color:var(--text2);margin-top:4px;">守り牌</div>`;}
+  else{ctr=`<div style="font-size:13px;color:var(--text3);">${G.ph==='idle'?'—':'待機中'}</div>`;}
+  cb.innerHTML=`<div style="position:relative;width:400px;height:400px;background:var(--bg);border-radius:8px;">
+    <div style="position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[2],degs[2])}</div>
+    <div style="position:absolute;left:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[3],degs[3])}</div>
+    <div style="position:absolute;right:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[1],degs[1])}</div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[0],degs[0])}</div>
+    <div style="position:absolute;top:96px;left:96px;right:96px;bottom:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--bg2);border-radius:6px;">${ctr}</div>
+  </div>`;
+}
+function render(){
+  if(G.ph==='teyaku'&&G.tyData){renderTyOv();return;}
+  document.getElementById('ty-ov').style.display='none';
+  document.getElementById('sc-a').textContent=G.sc[0];document.getElementById('sc-b').textContent=G.sc[1];
+  const myB=NET.myPid;const myT=(myB+2)%4;
+  const active=pid=>{const ph=G.ph;if(ph==='parent_def'||ph==='parent_atk')return G.atr===pid;if(ph==='player_recv'||ph==='player_atk')return G.responder===pid;if(ph==='respond')return G.rq&&G.rq[G.ri]===pid;return false;};
+  document.getElementById('ind-bottom').className='gind'+(active(myB)?' on':'');
+  const myTeam=team(myB);
+  document.getElementById('lbl-bottom').style.color=myTeam===0?'var(--danger)':'var(--info)';
+  const ph=G.ph;const isDef=ph==='parent_def'&&G.atr===myB;const isPatk=ph==='parent_atk'&&G.atr===myB;
+  const isAtk2=ph==='player_atk'&&G.responder===myB;const inRecv=ph==='player_recv'&&G.responder===myB;
+  const rIdxs=inRecv?recvOpts(G.h[myB],G.at):[];const isLast=G.h[myB].length===1;
+  document.getElementById('h-bottom').innerHTML=G.h[myB].map((t,i)=>{
+    const hl=rIdxs.includes(i);let cl=isDef||isPatk||isAtk2||hl,dimmed=false;
+    if(t==='王'&&(isPatk||isAtk2)&&!hl&&!canOuAtk(G.h[myB],isLast)){cl=false;dimmed=true;}
+    return mkT(t,'md',{cl,hl,dimmed,oc:cl?`pAct(${i})`:''});
+  }).join('');
+  showNashi(inRecv);
+  if(inRecv){const b=document.getElementById('nashi-btn');if(b)b.className=canRecv(G.h[myB],G.at)?'secondary':'nashi-req';}
+  renderCB();
+}
+function renderTyOv(){
+  if(!G.tyData)return;
+  const td=G.tyData;const canAct=td.waitFor===-1||td.waitFor===NET.myPid;
+  document.getElementById('ty-badge').textContent=td.badge;
+  document.getElementById('ty-player').textContent=td.player;
+  document.getElementById('ty-tiles').innerHTML=(td.tiles||[]).map(({t,hidden})=>hidden?mkT(t,'sm',{fd:true}):mkT(t,'sm',{})).join('');
+  document.getElementById('ty-msg').innerHTML=td.msg;
+  document.getElementById('ty-acts').innerHTML=canAct?td.acts.map(a=>`<button onclick="doTy('${a.act}')">${a.label}</button>`).join(''):
+    '<div style="font-size:12px;color:var(--text2);">他のプレイヤーの入力待ち…</div>';
+  document.getElementById('ty-ov').style.display='flex';
+}
+
+// ===== NETWORK =====
+function pstatus(msg){document.getElementById('pstatus').textContent=msg;}
+function updateLobby(){
+  const pos=['ホスト（P1）','P2','P3','P4'];
+  document.getElementById('slots').innerHTML=[0,1,2,3].map(pid=>{
+    const isMe=pid===NET.myPid;const isConn=isMe||NET.humanPids.has(pid);const name=NET.names[pid]||pos[pid];
+    const tag=isMe?'<span class="slot-tag tag-you">あなた</span>':isConn?'<span class="slot-tag tag-conn">接続済</span>':
+      (NET.mode==='host'&&NET.started)?'<span class="slot-tag tag-cpu">CPU</span>':'<span class="slot-tag tag-wait">待機中</span>';
+    return`<div class="slot"><div class="slot-num">${pos[pid]}</div><div class="slot-name">${name}</div>${tag}</div>`;
+  }).join('');
+  const humanCount=[...NET.humanPids].length;
+  document.getElementById('lobbyMsg').textContent=NET.mode==='host'?`${humanCount}/4 人接続中`:`接続中… (${humanCount}/4)`;
+  const sw=document.getElementById('startWrap');sw.style.display=NET.mode==='host'&&humanCount>=1?'flex':'none';
+}
+function updatePlayerInfo(){
+  const pos=['下（あなた）','右','上（味方）','左'];
+  document.getElementById('player-info').innerHTML=[0,1,2,3].map(o=>{
+    const pid=(NET.myPid+o)%4;const tw=team(pid);const human=NET.humanPids.has(pid);
+    return`${pos[o]}: ${NET.names[pid]||'P'+(pid+1)} （${'紅白'.split('')[tw]}組${human?'・人間':'・CPU'}）`;
+  }).join('<br>')+`<br><span style="font-size:11px;color:var(--text3);">ルームコード: ${NET.roomCode||'—'} | ${window.location.href}</span>`;
+}
+function toggleRules(){
+  const ov=document.getElementById('rules-ov');
+  ov.style.display=ov.style.display==='none'||ov.style.display===''?'block':'none';
+}
+function toggleSub(){
+  const p=document.getElementById('sub-panel');
+  const btn=document.getElementById('sub-toggle');
+  const show=p.style.display==='none'||p.style.display==='';
+  p.style.display=show?'block':'none';
+  btn.textContent=show?'📋 閉じる':'📋 詳細';
+}
+
+function NET_create(){
+  const code=genCode();NET.roomCode=code;NET.mode='host';NET.myPid=0;
+  NET.humanPids=new Set([0]);NET.names=['ホスト','','',''];NET.started=false;
+  document.getElementById('codeDisp').textContent=code;
+  document.getElementById('lv-hint').textContent='このコードを他のプレイヤーに伝えてください';
+  document.getElementById('sv').style.display='none';document.getElementById('lv').style.display='flex';
+  updateLobby();pstatus('');
+  NET.peer=new Peer(PEER_PFX+code,PEER_CFG);
+  NET.peer.on('error',e=>{if(e.type==='unavailable-id'){NET_create();}else{pstatus('接続エラー: '+e.message);}});
+  NET.peer.on('connection',conn=>{
+    const pid=Object.keys(NET.conns).length+1;if(pid>3){conn.close();return;}
+    NET.conns[pid]=conn;NET.humanPids.add(pid);NET.names[pid]='P'+(pid+1);
+    conn.on('open',()=>{conn.send({type:'welcome',pid,roomCode:code,names:NET.names,humanPids:[...NET.humanPids]});updateLobby();});
+    conn.on('data',data=>hostHandleClientMsg(pid,data));
+    conn.on('close',()=>{delete NET.conns[pid];NET.humanPids.delete(pid);updateLobby();});
+  });
+}
+function NET_join(){
+  const code=document.getElementById('codeIn').value.trim().toUpperCase();
+  if(code.length!==5){pstatus('5文字のコードを入力してください');return;}
+  NET.roomCode=code;NET.mode='client';pstatus('接続中…');
+  NET.peer=new Peer(PEER_CFG);
+  NET.peer.on('open',()=>{
+    NET.hostConn=NET.peer.connect(PEER_PFX+code,{reliable:true});
+    NET.hostConn.on('open',()=>pstatus('ホストへ接続しました'));
+    NET.hostConn.on('data',data=>clientHandleMsg(data));
+    NET.hostConn.on('close',()=>{if(document.getElementById('gw').style.display!=='none'){alert('ホストから切断されました');}});
+  });
+  NET.peer.on('error',e=>pstatus('接続失敗: '+e.message));
+}
+function NET_solo(){
+  NET.mode='solo';NET.myPid=0;NET.roomCode='';NET.humanPids=new Set([0]);NET.names=['あなた','CPU','CPU','CPU'];
+  document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
+  updatePlayerInfo();initGame();
+}
+function NET_hostStart(){
+  if(NET.mode!=='host')return;NET.started=true;
+  [1,2,3].forEach(pid=>{if(!NET.humanPids.has(pid))NET.names[pid]='CPU';});
+  Object.values(NET.conns).forEach(c=>{try{c.send({type:'start',humanPids:[...NET.humanPids],names:NET.names});}catch(e){}});
+  document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
+  updatePlayerInfo();initGame();
+}
+function NET_back(){
+  if(NET.peer){try{NET.peer.destroy();}catch(e){}}
+  NET.peer=null;NET.hostConn=null;NET.conns={};NET.mode='init';
+  document.getElementById('lv').style.display='none';document.getElementById('sv').style.display='flex';pstatus('');
+}
+function hostHandleClientMsg(pid,data){if(data.type==='action'){hostHandleAction(pid,data.action);}}
+function clientHandleMsg(data){
+  if(data.type==='welcome'){
+    NET.myPid=data.pid;NET.humanPids=new Set(data.humanPids);NET.names=data.names||NET.names;
+    document.getElementById('codeDisp').textContent=data.roomCode;
+    document.getElementById('lv-hint').textContent='ホストがゲームを開始するまでお待ちください';
+    document.getElementById('sv').style.display='none';document.getElementById('lv').style.display='flex';
+    updateLobby();pstatus('');
+  } else if(data.type==='start'){
+    NET.humanPids=new Set(data.humanPids);NET.names=data.names||NET.names;
+    document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
+    updatePlayerInfo();render();
+  } else if(data.type==='state'){
+    G=data.state.G;NET.humanPids=new Set(data.state.humanPids||[0]);if(data.state.names)NET.names=data.state.names;
+    render();updatePlayerInfo();
+  }
+}
+render();
+</script>
+</body>
+</html>
