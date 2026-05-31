@@ -31,7 +31,7 @@
   button.danger{background:var(--danger);color:#fff;}
   input{font-family:inherit;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;outline:none;width:100%;}
   input:focus{border-color:var(--info);}
-
+ 
   /* ===== NET OVERLAY ===== */
   #net-ov{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;overflow-y:auto;}
   .nt{font-family:'Noto Serif JP',serif;font-size:32px;font-weight:500;color:var(--text);}
@@ -57,7 +57,7 @@
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border2);}
   .divider span{font-size:11px;color:var(--text3);}
   #pstatus{font-size:12px;color:var(--text2);min-height:18px;text-align:center;}
-
+ 
   /* ===== GAME ===== */
   #gw{display:none;padding:10px 0 20px;}
   .gt polygon.gb{fill:#fff3d0;stroke:#d47d00;stroke-width:0.8;transition:fill .15s,stroke .15s}
@@ -110,7 +110,7 @@
 </head>
 <body>
 <div id="app">
-
+ 
 <!-- ======== NETWORK OVERLAY ======== -->
 <div id="net-ov">
   <div id="sv" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:320px;">
@@ -140,7 +140,7 @@
     <button onclick="NET_back()" class="secondary" style="font-size:12px;margin-top:4px;">← 戻る</button>
   </div>
 </div>
-
+ 
 <!-- ======== GAME AREA ======== -->
 <div id="gw">
   <!-- コンパクトヘッダー（スコア＋詳細トグル） -->
@@ -158,9 +158,10 @@
     <div style="display:flex;gap:6px;flex-shrink:0;">
       <button onclick="toggleSub()" class="secondary" id="sub-toggle" style="font-size:12px;padding:5px 10px;">📋 詳細</button>
       <button onclick="toggleRules()" class="secondary" style="font-size:12px;padding:5px 10px;">📖 ルール</button>
+      <button onclick="goHome()" class="secondary" style="font-size:12px;padding:5px 10px;">🏠 ホーム</button>
     </div>
   </div>
-
+ 
   <!-- サブ画面（ログ・接続情報） -->
   <div id="sub-panel">
     <div class="sub-sec">
@@ -172,7 +173,7 @@
       <div id="player-info" style="font-size:11px;color:var(--text2);line-height:1.8;">—</div>
     </div>
   </div>
-
+ 
   <!-- メインボード -->
   <div class="board-wrap">
     <div id="ov" class="ov-base">
@@ -193,7 +194,7 @@
       </div>
       <!-- あなた -->
       <div style="display:flex;flex-direction:column;align-items:center;padding-bottom:10px;">
-        <div id="lbl-bottom" style="font-size:11px;font-weight:500;color:var(--danger);margin-bottom:4px;">
+        <div id="lbl-bottom" style="font-size:11px;font-weight:500;margin-bottom:4px;">
           あなた <span class="gind" id="ind-bottom"></span>
         </div>
         <div id="h-bottom" class="hand-row"></div>
@@ -202,13 +203,9 @@
         </div>
       </div>
     </div>
-    <!-- ステータスバー -->
-    <div class="log-bar">
-      <div id="st" style="font-size:13px;font-weight:500;color:var(--text);text-align:center;">待機中</div>
-    </div>
   </div>
 </div><!-- /gw -->
-
+ 
 <!-- ======== RULES OVERLAY ======== -->
 <div id="rules-ov" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);overflow-y:auto;padding:20px;">
   <div style="max-width:520px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
@@ -220,7 +217,7 @@
       <button onclick="toggleRules()" class="secondary" style="font-size:13px;padding:5px 12px;">✕ 閉じる</button>
     </div>
     <div style="padding:14px 18px;display:flex;flex-direction:column;gap:0;">
-
+ 
       <div class="rl-row">
         <div class="rl-no">1</div>
         <div class="rl-txt"><strong>チーム編成</strong><br>4人で2対2のチーム戦。<strong style="color:var(--danger)">紅組</strong>（あなた＋上家）vs <strong style="color:var(--info)">白組</strong>（右家＋左家）。パートナーは向かい側。あがった人が次の勝負の親となります。</div>
@@ -279,13 +276,26 @@
           ■<strong>敵・味方それぞれ五し</strong>：片方のペアが「続ける」と宣言すれば配り直しなし。
         </div>
       </div>
-
+ 
     </div>
   </div>
 </div>
-
+ 
+<!-- ホーム確認ダイアログ -->
+<div id="home-confirm" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg);border-radius:var(--radius-lg);padding:24px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;">
+    <div style="font-size:28px;margin-bottom:12px;">🏠</div>
+    <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:8px;">ホームに戻りますか？</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">現在のゲームは終了し、接続が切断されます。</div>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button onclick="document.getElementById('home-confirm').style.display='none'" class="secondary" style="flex:1;padding:10px;">キャンセル</button>
+      <button onclick="goHomeExecute()" style="flex:1;padding:10px;background:var(--danger);color:#fff;border:none;">ホームへ戻る</button>
+    </div>
+  </div>
+</div>
+ 
 </div><!-- /app -->
-
+ 
 <script>
 // ===== CONSTANTS =====
 const TT=['王','飛','角','金','銀','馬','香','し'];
@@ -295,20 +305,24 @@ const PTS={'王':50,'飛':40,'角':40,'金':30,'銀':30,'馬':20,'香':20,'し':
 const DLY=820; const GOAL=150;
 const PEER_PFX='goita-v3-';
 const PEER_CFG={host:'0.peerjs.com',port:443,secure:true,path:'/'};
-
+ 
 // ===== NETWORK STATE =====
-const NET={mode:'init',myPid:0,roomCode:'',peer:null,hostConn:null,conns:{},humanPids:new Set(),names:['P1','P2','P3','P4']};
-
+const NET={mode:'init',myPid:0,roomCode:'',peer:null,hostConn:null,conns:{},humanPids:new Set(),names:['P1','P2','P3','P4'],
+  seats:[null,null,null,null], // seat(0-3) → connId('host' or 1/2/3)
+  myConnId:null,               // 'host' or 1/2/3
+  connNames:{}                 // connId → 表示名
+};
+ 
 function genCode(){return Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[0|Math.random()*24]).join('');}
 function isHuman(pid){return NET.humanPids.has(pid);}
 function PN(pid){return['あなた','右家','上家','左家'][(pid-NET.myPid+4)%4];}
 const team=p=>p%2===0?0:1;
 function playerLabel(pid){return`${PN(pid)}（${'紅白'.split('')[team(pid)]}組）`;}
-
+ 
 // ===== GAME STATE =====
 let G={h:[[],[],[],[]],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,tyData:null,tyActData:null};
 let prevAt=null;
-
+ 
 // ===== HELPERS =====
 function recvOpts(hand,at){
   if(at==='王')return hand.reduce((a,t,i)=>t==='王'?[...a,i]:a,[]);
@@ -332,7 +346,7 @@ function cpuPickAtk(hand){
 function mkQ(p){return[(p+1)%4,(p+2)%4,(p+3)%4];}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
 function mkDeck(){return shuffle(TT.flatMap(t=>Array(TC[t]).fill(t)));}
-
+ 
 // ===== STATE CHANGE =====
 function afterChange(){
   if(NET.mode==='host')broadcastState();
@@ -348,7 +362,7 @@ function broadcastState(){
   const state=JSON.parse(JSON.stringify({G,humanPids:[...NET.humanPids],names:NET.names}));
   Object.values(NET.conns).forEach(c=>{try{c.send({type:'state',state});}catch(e){}});
 }
-
+ 
 // ===== GAME LOGIC =====
 function hostDef(p,idx){
   if(G.ph!=='parent_def'||G.atr!==p)return;
@@ -439,7 +453,7 @@ function hostEndRound(winner){
   document.getElementById('ov-acts').innerHTML=vic>=0?'<button onclick="initGame()">もう一度</button>':'<button onclick="hostNewRound()">次の勝負</button>';
   setTimeout(()=>{document.getElementById('ov').style.display='flex';},700);
 }
-
+ 
 // ===== 手役 =====
 function showTy(badge,player,tiles,msg,acts,waitFor,actData){
   G.ph='teyaku';G.tyData={badge,player,tiles,msg,acts,waitFor};G.tyActData=actData||{};afterChange();
@@ -537,7 +551,7 @@ function initGame(){
   prevAt=null;document.getElementById('ov').style.display='none';document.getElementById('ty-ov').style.display='none';
   addLog('ゲームスタート！');if(NET.mode==='host'||NET.mode==='solo')hostCheckTeyaku();
 }
-
+ 
 // ===== INPUT =====
 function pAct(idx){
   const pid=NET.myPid;const ph=G.ph;let action=null;
@@ -562,10 +576,10 @@ function hostHandleAction(pid,action){
   else if(type==='pass')hostPass(pid);
   else if(type==='ty')hostResolveTy(act,pid);
 }
-
+ 
 // ===== RENDERING =====
 function addLog(msg){const el=document.getElementById('log');el.insertAdjacentHTML('afterbegin',`<div style="font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2);padding:1px 0;">${msg}</div>`);while(el.children.length>8)el.removeChild(el.lastChild);}
-function setStatus(t){document.getElementById('st').textContent=t;}
+function setStatus(t){}
 function showNashi(v){document.getElementById('nashi-wrap').style.display=v?'block':'none';const b=document.getElementById('nashi-btn');if(b&&!v)b.className='secondary';}
 function mkT(k,sz,o={}){
   const m={md:[44,50,18,30],sm:[36,42,14,26],xs:[28,34,11,21]}[sz]||[44,50,18,30];
@@ -659,27 +673,83 @@ function renderTyOv(){
     '<div style="font-size:12px;color:var(--text2);">他のプレイヤーの入力待ち…</div>';
   document.getElementById('ty-ov').style.display='flex';
 }
-
+ 
 // ===== NETWORK =====
 function pstatus(msg){document.getElementById('pstatus').textContent=msg;}
+// 席情報からhumanPids/namesを再計算
+function syncSeats(){
+  NET.humanPids=new Set(NET.seats.map((s,i)=>s!==null?i:-1).filter(i=>i!==-1));
+  NET.names=NET.seats.map((s,i)=>s?(NET.connNames[s]||`P${i+1}`):'CPU');
+  NET.myPid=NET.seats.indexOf(NET.myConnId);
+  if(NET.myPid===-1)NET.myPid=0;
+}
+ 
+// 席変更（ホストのみ実行）
+function hostChangeSeat(connId,newSeat){
+  if(NET.seats[newSeat]!==null&&NET.seats[newSeat]!==connId)return; // 既に他の人が座っている
+  const old=NET.seats.indexOf(connId);
+  if(old!==-1)NET.seats[old]=null;
+  NET.seats[newSeat]=connId;
+  syncSeats();
+  // 全クライアントに通知
+  const msg={type:'seat_update',seats:[...NET.seats],connNames:{...NET.connNames}};
+  Object.values(NET.conns).forEach(c=>{try{c.send(msg);}catch(e){}});
+  updateLobby();
+}
+ 
+// 席変更リクエスト（クライアントから呼ばれる）
+function requestSeat(seat){
+  if(NET.seats[seat]!==null&&NET.seats[seat]!==NET.myConnId){return;}
+  if(NET.mode==='host'){hostChangeSeat('host',seat);}
+  else{try{NET.hostConn.send({type:'seat_req',seat});}catch(e){}}
+}
+ 
 function updateLobby(){
-  const pos=['ホスト（P1）','P2','P3','P4'];
-  document.getElementById('slots').innerHTML=[0,1,2,3].map(pid=>{
-    const isMe=pid===NET.myPid;const isConn=isMe||NET.humanPids.has(pid);const name=NET.names[pid]||pos[pid];
-    const tag=isMe?'<span class="slot-tag tag-you">あなた</span>':isConn?'<span class="slot-tag tag-conn">接続済</span>':
-      (NET.mode==='host'&&NET.started)?'<span class="slot-tag tag-cpu">CPU</span>':'<span class="slot-tag tag-wait">待機中</span>';
-    return`<div class="slot"><div class="slot-num">${pos[pid]}</div><div class="slot-name">${name}</div>${tag}</div>`;
+  const seatLabels=['下（P1）','右（P2）','上（P3）','左（P4）'];
+  const teamColors=['var(--danger)','var(--info)','var(--danger)','var(--info)'];
+  document.getElementById('slots').innerHTML=[0,1,2,3].map(seat=>{
+    const connId=NET.seats[seat];
+    const isMe=connId===NET.myConnId;
+    const name=connId?(NET.connNames[connId]||`P${seat+1}`):'—';
+    const tag=isMe?'<span class="slot-tag tag-you">あなた</span>':
+      connId?'<span class="slot-tag tag-conn">接続済</span>':
+      '<span class="slot-tag tag-wait">空席</span>';
+    const myCurrentSeat=NET.seats.indexOf(NET.myConnId);
+    const canSit=seat!==myCurrentSeat&&(!connId||isMe);
+    const sitBtn=canSit?`<button onclick="requestSeat(${seat})" class="secondary" style="font-size:11px;padding:3px 10px;margin-left:4px;">ここに座る</button>`:'';
+    return`<div class="slot"><div class="slot-num" style="color:${teamColors[seat]}">${seatLabels[seat]}</div><div class="slot-name">${name}</div>${tag}${sitBtn}</div>`;
   }).join('');
-  const humanCount=[...NET.humanPids].length;
-  document.getElementById('lobbyMsg').textContent=NET.mode==='host'?`${humanCount}/4 人接続中`:`接続中… (${humanCount}/4)`;
+  const humanCount=NET.seats.filter(s=>s!==null).length;
+  document.getElementById('lobbyMsg').textContent=NET.mode==='host'?`${humanCount}/4 人着席中（チーム：下・上 vs 右・左）`:`接続済み (${humanCount}/4)`;
   const sw=document.getElementById('startWrap');sw.style.display=NET.mode==='host'&&humanCount>=1?'flex':'none';
 }
+ 
 function updatePlayerInfo(){
   const pos=['下（あなた）','右','上（味方）','左'];
   document.getElementById('player-info').innerHTML=[0,1,2,3].map(o=>{
     const pid=(NET.myPid+o)%4;const tw=team(pid);const human=NET.humanPids.has(pid);
     return`${pos[o]}: ${NET.names[pid]||'P'+(pid+1)} （${'紅白'.split('')[tw]}組${human?'・人間':'・CPU'}）`;
   }).join('<br>')+`<br><span style="font-size:11px;color:var(--text3);">ルームコード: ${NET.roomCode||'—'} | ${window.location.href}</span>`;
+}
+function goHome(){
+  document.getElementById('home-confirm').style.display='flex';
+}
+function goHomeExecute(){
+  document.getElementById('home-confirm').style.display='none';
+  if(NET.peer){try{NET.peer.destroy();}catch(e){}}
+  NET.peer=null;NET.hostConn=null;NET.conns={};
+  NET.seats=[null,null,null,null];NET.myConnId=null;NET.connNames={};
+  NET.mode='init';NET.started=false;
+  document.getElementById('gw').style.display='none';
+  document.getElementById('ov').style.display='none';
+  document.getElementById('ty-ov').style.display='none';
+  document.getElementById('rules-ov').style.display='none';
+  document.getElementById('sub-panel').style.display='none';
+  document.getElementById('lv').style.display='none';
+  document.getElementById('sv').style.display='flex';
+  document.getElementById('net-ov').style.display='flex';
+  document.getElementById('codeIn').value='';
+  pstatus('');
 }
 function toggleRules(){
   const ov=document.getElementById('rules-ov');
@@ -692,10 +762,11 @@ function toggleSub(){
   p.style.display=show?'block':'none';
   btn.textContent=show?'📋 閉じる':'📋 詳細';
 }
-
+ 
 function NET_create(){
-  const code=genCode();NET.roomCode=code;NET.mode='host';NET.myPid=0;
-  NET.humanPids=new Set([0]);NET.names=['ホスト','','',''];NET.started=false;
+  const code=genCode();NET.roomCode=code;NET.mode='host';
+  NET.myConnId='host';NET.seats=['host',null,null,null];NET.connNames={'host':'ホスト'};
+  syncSeats();NET.started=false;
   document.getElementById('codeDisp').textContent=code;
   document.getElementById('lv-hint').textContent='このコードを他のプレイヤーに伝えてください';
   document.getElementById('sv').style.display='none';document.getElementById('lv').style.display='flex';
@@ -703,11 +774,21 @@ function NET_create(){
   NET.peer=new Peer(PEER_PFX+code,PEER_CFG);
   NET.peer.on('error',e=>{if(e.type==='unavailable-id'){NET_create();}else{pstatus('接続エラー: '+e.message);}});
   NET.peer.on('connection',conn=>{
-    const pid=Object.keys(NET.conns).length+1;if(pid>3){conn.close();return;}
-    NET.conns[pid]=conn;NET.humanPids.add(pid);NET.names[pid]='P'+(pid+1);
-    conn.on('open',()=>{conn.send({type:'welcome',pid,roomCode:code,names:NET.names,humanPids:[...NET.humanPids]});updateLobby();});
-    conn.on('data',data=>hostHandleClientMsg(pid,data));
-    conn.on('close',()=>{delete NET.conns[pid];NET.humanPids.delete(pid);updateLobby();});
+    const connPid=Object.keys(NET.conns).length+1;if(connPid>3){conn.close();return;}
+    NET.conns[connPid]=conn;
+    NET.connNames[connPid]=`P${connPid+1}`;
+    // 空き席に自動着席
+    const seat=NET.seats.indexOf(null);
+    if(seat!==-1){NET.seats[seat]=connPid;syncSeats();}
+    conn.on('open',()=>{
+      conn.send({type:'welcome',connId:connPid,seats:[...NET.seats],connNames:{...NET.connNames},roomCode:code});
+      updateLobby();
+    });
+    conn.on('data',data=>hostHandleClientMsg(connPid,data));
+    conn.on('close',()=>{
+      const s=NET.seats.indexOf(connPid);if(s!==-1)NET.seats[s]=null;
+      delete NET.conns[connPid];syncSeats();updateLobby();
+    });
   });
 }
 function NET_join(){
@@ -724,31 +805,40 @@ function NET_join(){
   NET.peer.on('error',e=>pstatus('接続失敗: '+e.message));
 }
 function NET_solo(){
-  NET.mode='solo';NET.myPid=0;NET.roomCode='';NET.humanPids=new Set([0]);NET.names=['あなた','CPU','CPU','CPU'];
+  NET.mode='solo';NET.myConnId='host';NET.seats=['host',null,null,null];NET.connNames={'host':'あなた'};
+  syncSeats();NET.roomCode='';
   document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
   updatePlayerInfo();initGame();
 }
 function NET_hostStart(){
   if(NET.mode!=='host')return;NET.started=true;
-  [1,2,3].forEach(pid=>{if(!NET.humanPids.has(pid))NET.names[pid]='CPU';});
-  Object.values(NET.conns).forEach(c=>{try{c.send({type:'start',humanPids:[...NET.humanPids],names:NET.names});}catch(e){}});
+  syncSeats();
+  Object.values(NET.conns).forEach(c=>{try{c.send({type:'start',humanPids:[...NET.humanPids],names:NET.names,seats:[...NET.seats]});}catch(e){}});
   document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
   updatePlayerInfo();initGame();
 }
 function NET_back(){
   if(NET.peer){try{NET.peer.destroy();}catch(e){}}
   NET.peer=null;NET.hostConn=null;NET.conns={};NET.mode='init';
+  NET.seats=[null,null,null,null];NET.myConnId=null;NET.connNames={};
   document.getElementById('lv').style.display='none';document.getElementById('sv').style.display='flex';pstatus('');
 }
-function hostHandleClientMsg(pid,data){if(data.type==='action'){hostHandleAction(pid,data.action);}}
+function hostHandleClientMsg(connPid,data){
+  if(data.type==='action'){hostHandleAction(NET.seats.indexOf(connPid),data.action);}
+  else if(data.type==='seat_req'){hostChangeSeat(connPid,data.seat);}
+}
 function clientHandleMsg(data){
   if(data.type==='welcome'){
-    NET.myPid=data.pid;NET.humanPids=new Set(data.humanPids);NET.names=data.names||NET.names;
+    NET.myConnId=data.connId;NET.seats=data.seats;NET.connNames=data.connNames;
+    syncSeats();
     document.getElementById('codeDisp').textContent=data.roomCode;
     document.getElementById('lv-hint').textContent='ホストがゲームを開始するまでお待ちください';
     document.getElementById('sv').style.display='none';document.getElementById('lv').style.display='flex';
     updateLobby();pstatus('');
+  } else if(data.type==='seat_update'){
+    NET.seats=data.seats;NET.connNames=data.connNames;syncSeats();updateLobby();
   } else if(data.type==='start'){
+    if(data.seats){NET.seats=data.seats;syncSeats();}
     NET.humanPids=new Set(data.humanPids);NET.names=data.names||NET.names;
     document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
     updatePlayerInfo();render();
@@ -760,4 +850,3 @@ function clientHandleMsg(data){
 render();
 </script>
 </body>
-</html>
