@@ -31,7 +31,7 @@
   button.danger{background:var(--danger);color:#fff;}
   input{font-family:inherit;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;outline:none;width:100%;}
   input:focus{border-color:var(--info);}
- 
+
   /* ===== NET OVERLAY ===== */
   #net-ov{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px;overflow-y:auto;}
   .nt{font-family:'Noto Serif JP',serif;font-size:32px;font-weight:500;color:var(--text);}
@@ -57,7 +57,7 @@
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border2);}
   .divider span{font-size:11px;color:var(--text3);}
   #pstatus{font-size:12px;color:var(--text2);min-height:18px;text-align:center;}
- 
+
   /* ===== GAME ===== */
   #gw{display:none;padding:10px 0 20px;}
   .gt polygon.gb{fill:#fff3d0;stroke:#d47d00;stroke-width:0.8;transition:fill .15s,stroke .15s}
@@ -94,7 +94,7 @@
   .log-bar{border-top:1px solid var(--border2);padding:7px 14px;background:var(--bg2);border-radius:0 0 var(--radius-lg) var(--radius-lg);}
   .ov-base{display:none;position:absolute;inset:0;background:var(--bg);z-index:10;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;border-radius:var(--radius-lg);}
   #ty-ov{z-index:15;}
-  .hand-row{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;}
+  .hand-row{display:flex;flex-wrap:nowrap;justify-content:center;}
   .side-box{border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);padding:10px 4px;text-align:center;width:76px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
   .side-cnt{font-size:28px;font-weight:500;font-family:'Noto Serif JP',serif;color:var(--text);line-height:1.1;}
   /* rules */
@@ -110,7 +110,7 @@
 </head>
 <body>
 <div id="app">
- 
+
 <!-- ======== NETWORK OVERLAY ======== -->
 <div id="net-ov">
   <div id="sv" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:320px;">
@@ -140,7 +140,7 @@
     <button onclick="NET_back()" class="secondary" style="font-size:12px;margin-top:4px;">← 戻る</button>
   </div>
 </div>
- 
+
 <!-- ======== GAME AREA ======== -->
 <div id="gw">
   <!-- コンパクトヘッダー（スコア＋詳細トグル） -->
@@ -161,7 +161,7 @@
       <button onclick="goHome()" class="secondary" style="font-size:12px;padding:5px 10px;">🏠 ホーム</button>
     </div>
   </div>
- 
+
   <!-- サブ画面（ログ・接続情報） -->
   <div id="sub-panel">
     <div class="sub-sec">
@@ -173,7 +173,7 @@
       <div id="player-info" style="font-size:11px;color:var(--text2);line-height:1.8;">—</div>
     </div>
   </div>
- 
+
   <!-- メインボード -->
   <div class="board-wrap">
     <div id="ov" class="ov-base">
@@ -197,7 +197,9 @@
         <div id="lbl-bottom" style="font-size:11px;font-weight:500;margin-bottom:4px;">
           あなた <span class="gind" id="ind-bottom"></span>
         </div>
-        <div id="h-bottom" class="hand-row"></div>
+        <div id="h-bottom-wrap" style="width:100%;overflow:hidden;display:flex;justify-content:center;padding-top:7px;">
+          <div id="h-bottom" class="hand-row"></div>
+        </div>
         <div id="nashi-wrap" style="display:none;margin-top:8px;">
           <button id="nashi-btn" onclick="doPass()" style="font-size:14px;padding:8px 30px;" class="secondary">なし（パス）</button>
         </div>
@@ -205,7 +207,7 @@
     </div>
   </div>
 </div><!-- /gw -->
- 
+
 <!-- ======== RULES OVERLAY ======== -->
 <div id="rules-ov" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);overflow-y:auto;padding:20px;">
   <div style="max-width:520px;margin:0 auto;background:var(--bg);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);">
@@ -217,7 +219,7 @@
       <button onclick="toggleRules()" class="secondary" style="font-size:13px;padding:5px 12px;">✕ 閉じる</button>
     </div>
     <div style="padding:14px 18px;display:flex;flex-direction:column;gap:0;">
- 
+
       <div class="rl-row">
         <div class="rl-no">1</div>
         <div class="rl-txt"><strong>チーム編成</strong><br>4人で2対2のチーム戦。<strong style="color:var(--danger)">紅組</strong>（あなた＋上家）vs <strong style="color:var(--info)">白組</strong>（右家＋左家）。パートナーは向かい側。あがった人が次の勝負の親となります。</div>
@@ -268,19 +270,19 @@
       <div class="rl-row" style="border-bottom:none;">
         <div class="rl-no">10</div>
         <div class="rl-txt"><strong>手役（初期配牌の特別ルール）</strong><br>
-          ■<strong>五し</strong>（し5枚）：「五し」を宣言しし駒5枚を公開。味方と相談して「続ける」か「配り直す」かを決めます。両ペアが配り直しに同意した場合のみ配り直します。<br>
+          ■<strong>五し</strong>（し5枚）：「五し」を宣言しし駒5枚を公開。味方（対面）と相談します。<strong>味方が「続ける」なら配り直しなし</strong>、味方が「配り直す」なら配り直し（親は変わらず）。<br>
           ■<strong>六し</strong>（し6枚）：全駒公開。し以外の高い方の点を獲得（2枚同じなら2倍）。宣言者が次の親。<br>
           ■<strong>七し</strong>（し7枚）：全駒公開。し以外の点数の<strong>2倍</strong>を獲得。宣言者が次の親。<br>
           ■<strong>八し</strong>（し8枚）：全駒公開。<strong>100点獲得</strong>。宣言者が次の親。<br>
           ■<strong>ペア五し</strong>：同じペアの2人が共に五しの場合、そのペアが<strong>150点獲得し試合勝利</strong>。<br>
-          ■<strong>敵・味方それぞれ五し</strong>：片方のペアが「続ける」と宣言すれば配り直しなし。
+          ■<strong>敵・味方それぞれ五し</strong>：両チームが「続ける」なら配り直しなし。片方のペアが勝負開始を宣言すれば配り直しなし。
         </div>
       </div>
- 
+
     </div>
   </div>
 </div>
- 
+
 <!-- ホーム確認ダイアログ -->
 <div id="home-confirm" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--bg);border-radius:var(--radius-lg);padding:24px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.3);text-align:center;">
@@ -293,9 +295,9 @@
     </div>
   </div>
 </div>
- 
+
 </div><!-- /app -->
- 
+
 <script>
 // ===== CONSTANTS =====
 const TT=['王','飛','角','金','銀','馬','香','し'];
@@ -305,24 +307,24 @@ const PTS={'王':50,'飛':40,'角':40,'金':30,'銀':30,'馬':20,'香':20,'し':
 const DLY=820; const GOAL=150;
 const PEER_PFX='goita-v3-';
 const PEER_CFG={host:'0.peerjs.com',port:443,secure:true,path:'/'};
- 
+
 // ===== NETWORK STATE =====
 const NET={mode:'init',myPid:0,roomCode:'',peer:null,hostConn:null,conns:{},humanPids:new Set(),names:['P1','P2','P3','P4'],
   seats:[null,null,null,null], // seat(0-3) → connId('host' or 1/2/3)
   myConnId:null,               // 'host' or 1/2/3
   connNames:{}                 // connId → 表示名
 };
- 
+
 function genCode(){return Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[0|Math.random()*24]).join('');}
 function isHuman(pid){return NET.humanPids.has(pid);}
 function PN(pid){return['あなた','右家','上家','左家'][(pid-NET.myPid+4)%4];}
 const team=p=>p%2===0?0:1;
 function playerLabel(pid){return`${PN(pid)}（${'紅白'.split('')[team(pid)]}組）`;}
- 
+
 // ===== GAME STATE =====
 let G={h:[[],[],[],[]],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,tyData:null,tyActData:null};
 let prevAt=null;
- 
+
 // ===== HELPERS =====
 function recvOpts(hand,at){
   if(at==='王')return hand.reduce((a,t,i)=>t==='王'?[...a,i]:a,[]);
@@ -330,23 +332,150 @@ function recvOpts(hand,at){
   return hand.reduce((a,t,i)=>(t===at||t==='王')?[...a,i]:a,[]);
 }
 function canRecv(hand,at){return recvOpts(hand,at).length>0;}
+// 守り牌選択（裏向き牌）
+function cpuPickDef(pid,hand){
+  if(!hand.length)return 0;
+  const pp=(pid+2)%4;
+  const fieldCount=t=>G.used.flat().filter(u=>u.t===t).length;
+  const pick=t=>{const i=hand.indexOf(t);return i>=0?i:-1;};
+
+  // 優先度1: 対面が五し宣言済み かつ 自分のしが3枚以上でない → しを出す
+  const partnerGoshi=Array.isArray(G.goshiPids)&&G.goshiPids.includes(pp);
+  const myShi=hand.filter(t=>t==='し').length;
+  if(partnerGoshi&&myShi<3&&hand.includes('し')){const i=pick('し');if(i>=0)return i;}
+
+  // 優先度2: 場の馬が2枚以下 かつ 手牌の馬が1枚 → 馬を出す
+  const myUma=hand.filter(t=>t==='馬').length;
+  if(fieldCount('馬')<=2&&myUma===1){const i=pick('馬');if(i>=0)return i;}
+
+  // 優先度3: 場の金が2枚以下 かつ 手牌の金が1枚 → 金を出す
+  const myKin=hand.filter(t=>t==='金').length;
+  if(fieldCount('金')<=2&&myKin===1){const i=pick('金');if(i>=0)return i;}
+
+  // 優先度4: 場の銀が2枚以下 かつ 手牌の銀が1枚 → 銀を出す
+  const myGin=hand.filter(t=>t==='銀').length;
+  if(fieldCount('銀')<=2&&myGin===1){const i=pick('銀');if(i>=0)return i;}
+
+  // 優先度5: 上記なし → ランダム
+  return 0|Math.random()*hand.length;
+}
+
+// 対面CPUの五し返答判断
+function cpuGoshiDecide(pid,hand){
+  const shi=hand.filter(t=>t==='し').length;
+  const ou=hand.filter(t=>t==='王').length;
+  const kou=hand.filter(t=>t==='香').length;
+  const hi=hand.filter(t=>t==='飛').length;
+  const kaku=hand.filter(t=>t==='角').length;
+  const playerOrPartnerIsParent=G.atr===0||G.atr===pid;
+  const partnerIsParent=G.atr===pid;
+  if(shi>=4)return true;
+  if(shi>=3&&playerOrPartnerIsParent)return true;
+  if(ou===2)return true;
+  if(kou===4)return true;
+  if(kou>=3&&partnerIsParent)return true;
+  if(ou===1&&hi===2)return true;
+  if(ou===1&&kaku===2)return true;
+  return false;
+}
+
+function cpuShouldRecv(pid){
+  const attacker=G.atr;
+  const partnerPid=(pid+2)%4;
+  const isEnemy=team(attacker)!==team(pid);
+  const attackerTileNum=G.used[attacker].length+1; // 攻め手の今回の牌番号
+  const myTileIfRecv=G.used[pid].length+1;          // 受けたときの自分の牌番号
+  // 優先度1: 相手の6枚目の攻め牌 → 受ける
+  if(isEnemy&&attackerTileNum===6)return true;
+  // 優先度2: 自身の7枚目として受け牌を切れる → 受ける
+  if(myTileIfRecv===7)return true;
+  // 優先度3: 自身の5枚目 かつ 味方の2枚目の攻め牌 → 受ける
+  const partnerAtksSoFar=(G.used[partnerPid]||[]).filter(u=>u.tp==='atk').length;
+  if(!isEnemy&&partnerAtksSoFar===1&&myTileIfRecv===5)return true;
+  // 優先度4: 味方の攻め牌 → 受けない
+  if(!isEnemy)return false;
+  // 優先度5: 相手の2・4枚目の攻め牌を王でしか受けられない → 受けない
+  if(isEnemy&&(attackerTileNum===2||attackerTileNum===4)){
+    const opts=recvOpts(G.h[pid],G.at);
+    const onlyOu=opts.length>0&&opts.every(i=>G.h[pid][i]==='王');
+    if(onlyOu)return false;
+  }
+  // 優先度6: 相手の攻め牌 → 受ける
+  return true;
+}
+
 function cpuPickRecv(hand,at){const opts=recvOpts(hand,at);return opts.find(i=>hand[i]!=='王')??opts[0];}
 function canOuAtk(hand,isLast){return isLast||G.ouInPlay||hand.filter(t=>t==='王').length>=2;}
-function cpuPickAtk(hand){
+function cpuPickAtk(pid,hand){
   if(!hand.length)return 0;
   const isLast=hand.length===1;
+  // 前提: 王は条件を満たす場合のみ候補に入れる
   const valid=hand.filter(t=>t!=='王'||canOuAtk(hand,isLast));
   const useH=valid.length?valid:hand;
+  const has=t=>useH.includes(t);
+  const pick=t=>{const i=hand.indexOf(t);return i>=0?i:-1;};
+  const fieldCount=t=>G.used.flat().filter(u=>u.t===t).length;
+  const handCount=t=>hand.filter(x=>x===t).length;
+
+  // ルール1: 場の香 + 手牌の香 = 4枚 → 香を出す
+  if(has('香')&&fieldCount('香')+handCount('香')===4){const i=pick('香');if(i>=0)return i;}
+
+  // ルール2〜6: 場の王＋手牌の王＝2枚（王が全て場か手元に判明）の場合、各駒独占なら出す
+  const allOuAccounted=fieldCount('王')+handCount('王')===2;
+  if(allOuAccounted){
+    // ルール2: 場の馬＋手牌の馬＝4枚 → 馬を出す
+    if(has('馬')&&fieldCount('馬')+handCount('馬')===4){const i=pick('馬');if(i>=0)return i;}
+    // ルール3: 場の金＋手牌の金＝4枚 → 金を出す
+    if(has('金')&&fieldCount('金')+handCount('金')===4){const i=pick('金');if(i>=0)return i;}
+    // ルール4: 場の銀＋手牌の銀＝4枚 → 銀を出す
+    if(has('銀')&&fieldCount('銀')+handCount('銀')===4){const i=pick('銀');if(i>=0)return i;}
+    // ルール5: 場の飛＋手牌の飛＝2枚 → 飛を出す
+    if(has('飛')&&fieldCount('飛')+handCount('飛')===2){const i=pick('飛');if(i>=0)return i;}
+    // ルール6: 場の角＋手牌の角＝2枚 → 角を出す
+    if(has('角')&&fieldCount('角')+handCount('角')===2){const i=pick('角');if(i>=0)return i;}
+  }
+
+  // ルール7: 自身の攻め牌が6枚目 かつ 王が出せる → 王を出す
+  const myAtkNum=G.used[pid].length+1;
+  if(myAtkNum===6&&has('王')){const i=pick('王');if(i>=0)return i;}
+
+  // ルール8: 対面の仲間が五しを宣言 かつ 手牌のしが3枚以上 → しを出す
+  const partnerPid=(pid+2)%4;
+  const partnerGoshi=Array.isArray(G.goshiPids)&&G.goshiPids.includes(partnerPid);
+  const myShi=hand.filter(t=>t==='し').length;
+  if(partnerGoshi&&myShi>=3&&has('し')){const i=pick('し');if(i>=0)return i;}
+
+  // ルール9: 場の馬＋手牌の馬＝4枚 → 馬を出す
+  if(has('馬')&&fieldCount('馬')+handCount('馬')===4){const i=pick('馬');if(i>=0)return i;}
+  // ルール10: 場の金＋手牌の金＝4枚 → 金を出す
+  if(has('金')&&fieldCount('金')+handCount('金')===4){const i=pick('金');if(i>=0)return i;}
+  // ルール11: 場の銀＋手牌の銀＝4枚 → 銀を出す
+  if(has('銀')&&fieldCount('銀')+handCount('銀')===4){const i=pick('銀');if(i>=0)return i;}
+  // ルール12: 場の飛＋手牌の飛＝2枚 → 飛を出す
+  if(has('飛')&&fieldCount('飛')+handCount('飛')===2){const i=pick('飛');if(i>=0)return i;}
+  // ルール13: 場の角＋手牌の角＝2枚 → 角を出す
+  if(has('角')&&fieldCount('角')+handCount('角')===2){const i=pick('角');if(i>=0)return i;}
+
+  // ルール14: 対面の仲間の2枚目攻め牌が馬・銀・金のいずれか → 同じ牌を出す
+  const partnerAtk=(G.used[partnerPid]||[]).find(u=>u.tp==='atk');
+  if(partnerAtk&&['馬','銀','金'].includes(partnerAtk.t)&&has(partnerAtk.t)){const i=pick(partnerAtk.t);if(i>=0)return i;}
+
+  // ルール15: 対面の攻め牌がすべて「し」 かつ 手牌のしが3枚以上 → しを出す
+  const partnerAtks=(G.used[partnerPid]||[]).filter(u=>u.tp==='atk');
+  if(partnerAtks.length>0&&partnerAtks.every(u=>u.t==='し')&&myShi>=3&&has('し')){const i=pick('し');if(i>=0)return i;}
+
+  // ルール16: 最も枚数が多い種類を選ぶ
   const cnt={};useH.forEach(t=>{cnt[t]=(cnt[t]||0)+1;});
   const mx=Math.max(...Object.values(cnt));
   const cands=useH.filter(t=>cnt[t]===mx);
+  // ルール17: 同数ならランダム
   const t=cands[0|Math.random()*cands.length];
   const idx=hand.indexOf(t);return idx>=0?idx:0;
 }
 function mkQ(p){return[(p+1)%4,(p+2)%4,(p+3)%4];}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
 function mkDeck(){return shuffle(TT.flatMap(t=>Array(TC[t]).fill(t)));}
- 
+
 // ===== STATE CHANGE =====
 function afterChange(){
   if(NET.mode==='host')broadcastState();
@@ -354,15 +483,15 @@ function afterChange(){
 }
 function autoCPU(){
   const ph=G.ph;
-  if(ph==='parent_def'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_def')hostDef(G.atr,0|Math.random()*G.h[G.atr].length);},DLY);}
-  else if(ph==='parent_atk'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_atk')hostAtk(G.atr,cpuPickAtk(G.h[G.atr]));},DLY);}
+  if(ph==='parent_def'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_def')hostDef(G.atr,cpuPickDef(G.atr,G.h[G.atr]));},DLY);}
+  else if(ph==='parent_atk'&&!isHuman(G.atr)){setTimeout(()=>{if(G.ph==='parent_atk')hostAtk(G.atr,cpuPickAtk(G.atr,G.h[G.atr]));},DLY);}
   else if(ph==='respond'){hostProcessQ();}
 }
 function broadcastState(){
   const state=JSON.parse(JSON.stringify({G,humanPids:[...NET.humanPids],names:NET.names}));
   Object.values(NET.conns).forEach(c=>{try{c.send({type:'state',state});}catch(e){}});
 }
- 
+
 // ===== GAME LOGIC =====
 function hostDef(p,idx){
   if(G.ph!=='parent_def'||G.atr!==p)return;
@@ -388,7 +517,7 @@ function hostRecv(p,idx){
   if(rt==='王')G.ouInPlay=true;
   addLog(`${playerLabel(p)}が「${rt}」で${rt==='王'?'切り':'受け'}`);
   G.ph='player_atk';afterChange();
-  if(!isHuman(p)){setTimeout(()=>{if(G.ph==='player_atk')hostPAtk(p,cpuPickAtk(G.h[p]));},DLY);}
+  if(!isHuman(p)){setTimeout(()=>{if(G.ph==='player_atk')hostPAtk(p,cpuPickAtk(p,G.h[p]));},DLY);}
 }
 function hostPAtk(p,idx){
   if(G.ph!=='player_atk'||G.responder!==p)return;
@@ -409,7 +538,7 @@ function hostCpuRA(p){
   const ri=cpuPickRecv(G.h[p],G.at);
   const rt=G.h[p][ri];G.h[p].splice(ri,1);G.used[p].push({t:rt,tp:'def'});
   if(rt==='王')G.ouInPlay=true;
-  const ai=cpuPickAtk(G.h[p]);
+  const ai=cpuPickAtk(p,G.h[p]);
   const at=G.h[p][ai];G.h[p].splice(ai,1);G.used[p].push({t:at,tp:'atk'});
   G.at=at;G.atr=p;
   if(at==='王')G.ouInPlay=true;
@@ -427,8 +556,11 @@ function hostProcessQ(){
   } else {
     setTimeout(()=>{
       if(G.ph!=='respond')return;
-      if(canRecv(G.h[resp],G.at)){hostCpuRA(resp);}
-      else{addLog(`${playerLabel(resp)}は受けられない`);G.ri++;G.ph='respond';afterChange();}
+      if(canRecv(G.h[resp],G.at)&&cpuShouldRecv(resp)){hostCpuRA(resp);}
+      else{
+        addLog(`${playerLabel(resp)}は${canRecv(G.h[resp],G.at)?'なし（パス）':'受けられない'}`);
+        G.ri++;G.ph='respond';afterChange();
+      }
     },DLY);
   }
 }
@@ -453,7 +585,7 @@ function hostEndRound(winner){
   document.getElementById('ov-acts').innerHTML=vic>=0?'<button onclick="initGame()">もう一度</button>':'<button onclick="hostNewRound()">次の勝負</button>';
   setTimeout(()=>{document.getElementById('ov').style.display='flex';},700);
 }
- 
+
 // ===== 手役 =====
 function showTy(badge,player,tiles,msg,acts,waitFor,actData){
   G.ph='teyaku';G.tyData={badge,player,tiles,msg,acts,waitFor};G.tyActData=actData||{};afterChange();
@@ -489,6 +621,7 @@ function hostCheckTeyaku(){
     }
   }
   const goshi=[0,1,2,3].filter(p=>shiC[p]>=5);
+  G.goshiPids=[...goshi]; // 五し宣言プレイヤーを記録
   if(!goshi.length){hostStartSetup();return;}
   if(goshi.includes(0)&&goshi.includes(2)){G.sc[0]+=GOAL;addLog('紅組がペア五し！試合勝利');
     showTy('ペア五し！','あなたと上家（紅組）',G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
@@ -500,14 +633,25 @@ function hostCheckTeyaku(){
       '白組の2人がともに五し！<br><strong>白組が150点獲得・試合勝利！</strong>',
       [{label:'結果へ',act:'end'}],-1,{name:'end',tw:1});return;
   }
-  const p0Has=goshi.includes(0);const enemyG=goshi.filter(p=>team(p)!==0);
+  const p0Has=goshi.includes(0);
   if(p0Has){
-    G.goshiCpuCont=!enemyG.length||Math.random()<0.6;
-    const note=enemyG.length?`<br>※${playerLabel(enemyG[0])}も五しを宣言。`:'';
-    showTy('五し（ごし）','あなた（紅組）',G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
-      `し駒5枚を公開。上家と相談してください。${note}<br>片方が「続ける」なら配り直しなし。`,
-      [{label:'このまま続ける',act:'goshi_cont'},{label:'配り直す',act:'goshi_redeal'}],
-      0,{name:'goshi'});
+    const partnerPid=2;
+    const shiH=G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false}));
+    if(isHuman(partnerPid)){
+      // 対面が人間プレイヤー → 対面に返答させる
+      showTy('五し（ごし）','あなた（紅組）',shiH,
+        `し駒5枚を公開。<br>上家（味方）、返答を選んでください。`,
+        [{label:'そのまま続ける',act:'goshi_cont'},{label:'配り直す',act:'goshi_redeal'}],
+        partnerPid,{name:'goshi',humanPartner:true});
+    } else {
+      // 対面がCPU → 条件により自動判断
+      G.goshiCpuCont=cpuGoshiDecide(partnerPid,G.h[partnerPid]);
+      const dec=G.goshiCpuCont?'そのまま続ける':'配り直す';
+      showTy('五し（ごし）','あなた（紅組）',shiH,
+        `し駒5枚を公開。<br>上家（味方）：「<strong>${dec}</strong>」`,
+        [{label:'わかった',act:'next'}],
+        0,{name:'goshi',humanPartner:false});
+    }
   } else {
     const fp=goshi[0];
     showTy('五し（ごし）',playerLabel(fp),G.h[fp].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
@@ -524,7 +668,11 @@ function hostResolveTy(act,pid){
   if(NET.mode==='host')broadcastState();
   if(name==='round'){const tw=aData.tw;if(G.sc[tw]>=GOAL){showEndState(tw);}else{hostNewRound();}}
   else if(name==='end'){showEndState(aData.tw);}
-  else if(name==='goshi'){(act==='goshi_cont'||G.goshiCpuCont)?hostStartSetup():hostNewRound();}
+  // 五し：対面の返答に従う。配り直しは親変わらず
+  else if(name==='goshi'){
+    const cont=aData.humanPartner?(act==='goshi_cont'):G.goshiCpuCont;
+    cont?hostStartSetup():hostNewRound();
+  }
   else if(name==='goshi_cpu'){hostStartSetup();}
 }
 function showEndState(tw){
@@ -535,7 +683,7 @@ function showEndState(tw){
 }
 function hostNewRound(){
   const d=mkDeck();const{sc,atr}=G;
-  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[...sc],goshiCpuCont:true,tyData:null,tyActData:null};
+  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[...sc],goshiCpuCont:true,goshiPids:[],tyData:null,tyActData:null};
   prevAt=null;document.getElementById('ov').style.display='none';document.getElementById('ty-ov').style.display='none';
   addLog('次の勝負！');hostCheckTeyaku();
 }
@@ -547,11 +695,11 @@ function hostStartSetup(){
 function initGame(){
   if(NET.mode==='init')return;
   const d=mkDeck();
-  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,tyData:null,tyActData:null};
+  G={h:[d.slice(0,8),d.slice(8,16),d.slice(16,24),d.slice(24,32)],used:[[],[],[],[]],at:null,atr:0,ph:'idle',rq:[],ri:0,responder:0,defTile:null,defOwner:null,ouInPlay:false,sc:[0,0],goshiCpuCont:true,goshiPids:[],tyData:null,tyActData:null};
   prevAt=null;document.getElementById('ov').style.display='none';document.getElementById('ty-ov').style.display='none';
   addLog('ゲームスタート！');if(NET.mode==='host'||NET.mode==='solo')hostCheckTeyaku();
 }
- 
+
 // ===== INPUT =====
 function pAct(idx){
   const pid=NET.myPid;const ph=G.ph;let action=null;
@@ -576,7 +724,7 @@ function hostHandleAction(pid,action){
   else if(type==='pass')hostPass(pid);
   else if(type==='ty')hostResolveTy(act,pid);
 }
- 
+
 // ===== RENDERING =====
 function addLog(msg){const el=document.getElementById('log');el.insertAdjacentHTML('afterbegin',`<div style="font-size:11px;color:var(--text2);border-bottom:1px solid var(--border2);padding:1px 0;">${msg}</div>`);while(el.children.length>8)el.removeChild(el.lastChild);}
 function setStatus(t){}
@@ -661,6 +809,28 @@ function render(){
   showNashi(inRecv);
   if(inRecv){const b=document.getElementById('nashi-btn');if(b)b.className=canRecv(G.h[myB],G.at)?'secondary':'nashi-req';}
   renderCB();
+  fitHand();
+}
+// 手牌を1列に収まるようスケール調整
+function fitHand(){
+  const wrap=document.getElementById('h-bottom-wrap');
+  const row=document.getElementById('h-bottom');
+  if(!wrap||!row)return;
+  row.style.transform='none';
+  requestAnimationFrame(()=>{
+    const available=wrap.clientWidth;
+    const natural=row.scrollWidth;
+    if(natural>0&&natural>available){
+      const scale=available/natural;
+      row.style.transform=`scale(${scale})`;
+      row.style.transformOrigin='center top';
+      // 縮小分の余白を補正
+      const tileH=50;
+      row.style.marginBottom=`${tileH*(scale-1)}px`;
+    } else {
+      row.style.marginBottom='';
+    }
+  });
 }
 function renderTyOv(){
   if(!G.tyData)return;
@@ -673,7 +843,7 @@ function renderTyOv(){
     '<div style="font-size:12px;color:var(--text2);">他のプレイヤーの入力待ち…</div>';
   document.getElementById('ty-ov').style.display='flex';
 }
- 
+
 // ===== NETWORK =====
 function pstatus(msg){document.getElementById('pstatus').textContent=msg;}
 // 席情報からhumanPids/namesを再計算
@@ -683,7 +853,7 @@ function syncSeats(){
   NET.myPid=NET.seats.indexOf(NET.myConnId);
   if(NET.myPid===-1)NET.myPid=0;
 }
- 
+
 // 席変更（ホストのみ実行）
 function hostChangeSeat(connId,newSeat){
   if(NET.seats[newSeat]!==null&&NET.seats[newSeat]!==connId)return; // 既に他の人が座っている
@@ -696,14 +866,14 @@ function hostChangeSeat(connId,newSeat){
   Object.values(NET.conns).forEach(c=>{try{c.send(msg);}catch(e){}});
   updateLobby();
 }
- 
+
 // 席変更リクエスト（クライアントから呼ばれる）
 function requestSeat(seat){
   if(NET.seats[seat]!==null&&NET.seats[seat]!==NET.myConnId){return;}
   if(NET.mode==='host'){hostChangeSeat('host',seat);}
   else{try{NET.hostConn.send({type:'seat_req',seat});}catch(e){}}
 }
- 
+
 function updateLobby(){
   const seatLabels=['下（P1）','右（P2）','上（P3）','左（P4）'];
   const teamColors=['var(--danger)','var(--info)','var(--danger)','var(--info)'];
@@ -723,7 +893,7 @@ function updateLobby(){
   document.getElementById('lobbyMsg').textContent=NET.mode==='host'?`${humanCount}/4 人着席中（チーム：下・上 vs 右・左）`:`接続済み (${humanCount}/4)`;
   const sw=document.getElementById('startWrap');sw.style.display=NET.mode==='host'&&humanCount>=1?'flex':'none';
 }
- 
+
 function updatePlayerInfo(){
   const pos=['下（あなた）','右','上（味方）','左'];
   document.getElementById('player-info').innerHTML=[0,1,2,3].map(o=>{
@@ -762,7 +932,7 @@ function toggleSub(){
   p.style.display=show?'block':'none';
   btn.textContent=show?'📋 閉じる':'📋 詳細';
 }
- 
+
 function NET_create(){
   const code=genCode();NET.roomCode=code;NET.mode='host';
   NET.myConnId='host';NET.seats=['host',null,null,null];NET.connNames={'host':'ホスト'};
@@ -848,6 +1018,7 @@ function clientHandleMsg(data){
   }
 }
 render();
+window.addEventListener('resize',fitHand);
 </script>
 </body>
 </html>
