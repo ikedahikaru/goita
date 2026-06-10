@@ -814,6 +814,9 @@ function renderCB(){
   const pids=[0,1,2,3].map(o=>(myB+o)%4);const degs=[0,-90,180,90];
   const nc=pid=>NET.names[pid]||`P${pid+1}`;
   const tc=pid=>team(pid)===0?'var(--danger)':'var(--info)';
+  const parentStyle=pid=>G.atr===pid?'font-weight:700;color:#2a9d5c!important;':'';
+  const nameEl=(pid,style)=>`<div style="${style}color:${tc(pid)};${parentStyle(pid)}">${nc(pid)}</div>`;
+  const nameElV=(pid,style)=>`<div style="${style}color:${tc(pid)};${parentStyle(pid)}">${nc(pid)}</div>`;
   function pg(pid,deg){
     const used=G.used[pid];if(!used||!used.length)return'';
     const lai=used.reduce((l,{tp},i)=>tp==='atk'?i:l,-1);
@@ -835,26 +838,26 @@ function renderCB(){
   cb.innerHTML=`<div style="position:relative;width:400px;height:400px;background:var(--bg);border-radius:8px;">
     <div style="position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:100%;">
-        <div style="${nameStyle}color:${tc(pids[2])};">${nc(pids[2])}</div>
+        ${nameEl(pids[2],nameStyle)}
         ${pg(pids[2],degs[2])}
       </div>
     </div>
     <div style="position:absolute;left:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">
       <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;height:100%;">
-        <div style="${nameV}color:${tc(pids[3])};">${nc(pids[3])}</div>
+        ${nameElV(pids[3],nameV)}
         ${pg(pids[3],degs[3])}
       </div>
     </div>
     <div style="position:absolute;right:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">
       <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;height:100%;">
         ${pg(pids[1],degs[1])}
-        <div style="${nameV}color:${tc(pids[1])};transform:rotate(180deg);">${nc(pids[1])}</div>
+        ${nameElV(pids[1],nameV+'transform:rotate(180deg);')}
       </div>
     </div>
     <div style="position:absolute;bottom:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:100%;">
         ${pg(pids[0],degs[0])}
-        <div style="${nameStyle}color:${tc(pids[0])};">${nc(pids[0])}</div>
+        ${nameEl(pids[0],nameStyle)}
       </div>
     </div>
     <div style="position:absolute;top:96px;left:96px;right:96px;bottom:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--bg2);border-radius:6px;">${ctr}</div>
@@ -977,6 +980,14 @@ function goHome(){
 }
 function goHomeExecute(){
   document.getElementById('home-confirm').style.display='none';
+  // ホストへ退席を通知してから切断
+  if(NET.mode==='client'&&NET.hostConn){
+    try{NET.hostConn.send({type:'leave'});}catch(e){}
+  }
+  // ホストの場合は全クライアントに通知
+  if(NET.mode==='host'){
+    Object.values(NET.conns).forEach(c=>{try{c.send({type:'host_left'});}catch(e){}});
+  }
   if(NET.peer){try{NET.peer.destroy();}catch(e){}}
   NET.peer=null;NET.hostConn=null;NET.conns={};
   NET.seats=[null,null,null,null];NET.myConnId=null;NET.connNames={};
@@ -1030,7 +1041,8 @@ function NET_create(){
     conn.on('data',data=>hostHandleClientMsg(connPid,data));
     conn.on('close',()=>{
       const s=NET.seats.indexOf(connPid);if(s!==-1)NET.seats[s]=null;
-      delete NET.conns[connPid];syncSeats();updateLobby();
+      delete NET.conns[connPid];delete NET.connNames[connPid];
+      syncSeats();broadcastSeatUpdate();
     });
   });
 }
@@ -1042,11 +1054,7 @@ function NET_join(){
   NET.peer=new Peer(PEER_CFG);
   NET.peer.on('open',()=>{
     NET.hostConn=NET.peer.connect(PEER_PFX+code,{reliable:true});
-    NET.hostConn.on('open',()=>{
-      const myName=document.getElementById('playerName').value.trim()||'ゲスト';
-      NET.hostConn.send({type:'hello',name:myName});
-      pstatus('ホストへ接続しました');
-    });
+    NET.hostConn.on('open',()=>pstatus('ホストへ接続しました'));
     NET.hostConn.on('data',data=>clientHandleMsg(data));
     NET.hostConn.on('close',()=>{if(document.getElementById('gw').style.display!=='none'){alert('ホストから切断されました');}});
   });
@@ -1078,27 +1086,44 @@ function hostHandleClientMsg(connPid,data){
     NET.connNames[connPid]=data.name||`P${connPid+1}`;
     syncSeats();broadcastSeatUpdate();
   }
+  else if(data.type==='leave'){
+    const s=NET.seats.indexOf(connPid);if(s!==-1)NET.seats[s]=null;
+    delete NET.conns[connPid];delete NET.connNames[connPid];
+    syncSeats();broadcastSeatUpdate();
+  }
 }
 function clientHandleMsg(data){
   if(data.type==='welcome'){
     NET.myConnId=data.connId;NET.seats=data.seats;NET.connNames=data.connNames;
-    // welcome到着時点でhelloより古い名前が入っている場合があるため自分の名前を上書き
     const myName=document.getElementById('playerName').value.trim()||'ゲスト';
     NET.connNames[NET.myConnId]=myName;
     syncSeats();
+    // welcome受信後にhelloを送ることでseat_updateが必ずwelcome後に届く
+    try{NET.hostConn.send({type:'hello',name:myName});}catch(e){}
     document.getElementById('codeDisp').textContent=data.roomCode;
     document.getElementById('lv-hint').textContent='ホストがゲームを開始するまでお待ちください';
     document.getElementById('sv').style.display='none';document.getElementById('lv').style.display='flex';
     updateLobby();pstatus('');
   } else if(data.type==='seat_update'){
     NET.seats=data.seats;NET.connNames=data.connNames;syncSeats();updateLobby();
+  } else if(data.type==='host_left'){
+    alert('ホストがゲームを終了しました。');
+    goHomeExecute();
   } else if(data.type==='start'){
     if(data.seats){NET.seats=data.seats;syncSeats();}
     NET.humanPids=new Set(data.humanPids);NET.names=data.names||NET.names;
     document.getElementById('net-ov').style.display='none';document.getElementById('gw').style.display='block';
     updatePlayerInfo();render();
   } else if(data.type==='state'){
+    const prevUsed=(G.used||[[],[],[],[]]).map(u=>u.length);
+    const prevPh=G.ph;const prevResp=G.responder;const prevAtr=G.atr;
     G=data.state.G;NET.humanPids=new Set(data.state.humanPids||[0]);if(data.state.names)NET.names=data.state.names;
+    // SE：牌が使われた
+    if(G.used.some((u,i)=>u.length>(prevUsed[i]||0)))playSE();
+    // 自分の手番SE
+    const isMyTurn=(G.ph==='player_recv'&&G.responder===NET.myPid)||(G.ph==='parent_def'&&G.atr===NET.myPid);
+    const wasMyTurn=(prevPh==='player_recv'&&prevResp===NET.myPid)||(prevPh==='parent_def'&&prevAtr===NET.myPid);
+    if(isMyTurn&&!wasMyTurn)playTurnSE();
     render();updatePlayerInfo();
   }
 }
