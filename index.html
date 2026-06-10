@@ -1082,6 +1082,9 @@ function hostHandleClientMsg(connPid,data){
 function clientHandleMsg(data){
   if(data.type==='welcome'){
     NET.myConnId=data.connId;NET.seats=data.seats;NET.connNames=data.connNames;
+    // welcome到着時点でhelloより古い名前が入っている場合があるため自分の名前を上書き
+    const myName=document.getElementById('playerName').value.trim()||'ゲスト';
+    NET.connNames[NET.myConnId]=myName;
     syncSeats();
     document.getElementById('codeDisp').textContent=data.roomCode;
     document.getElementById('lv-hint').textContent='ホストがゲームを開始するまでお待ちください';
