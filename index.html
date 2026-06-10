@@ -116,12 +116,15 @@
   <div id="sv" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:320px;">
     <div class="nt">ごいた</div>
     <div class="nc" style="margin-top:8px;">
+      <input id="playerName" class="ninput" placeholder="プレイヤー名（省略可）" maxlength="10"
+        style="text-align:center;font-size:15px;">
+      <div class="divider"><span>マルチプレイ</span></div>
       <button onclick="NET_create()" style="font-size:15px;padding:14px;">🎮 ルームを作る（ホスト）</button>
       <div class="divider"><span>または</span></div>
       <input id="codeIn" class="ninput" placeholder="ルームコードを入力" maxlength="5"
         oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
       <button onclick="NET_join()" style="font-size:15px;padding:14px;">🔗 コードで参加</button>
-      <div class="divider"><span>または</span></div>
+      <div class="divider"><span>ソロ</span></div>
       <button onclick="NET_solo()" class="secondary" style="font-size:14px;">👤 ひとりで遊ぶ（CPU対戦）</button>
     </div>
     <div id="pstatus"></div>
@@ -807,9 +810,10 @@ function mkMicro(t,tp,hidden,isLast,isLive){
 }
 function renderCB(){
   const cb=document.getElementById('cb');const isNew=G.at&&G.at!==prevAt;prevAt=G.at;
-  // 28x34 tiles: GW=4*28+3*3=121, GH=2*34+3=71  board: 96+208+96=400
   const GW=121,GH=71;const myB=NET.myPid;
   const pids=[0,1,2,3].map(o=>(myB+o)%4);const degs=[0,-90,180,90];
+  const nc=pid=>NET.names[pid]||`P${pid+1}`;
+  const tc=pid=>team(pid)===0?'var(--danger)':'var(--info)';
   function pg(pid,deg){
     const used=G.used[pid];if(!used||!used.length)return'';
     const lai=used.reduce((l,{tp},i)=>tp==='atk'?i:l,-1);
@@ -822,15 +826,37 @@ function renderCB(){
     const grid=`<div style="width:${GW}px;height:${GH}px;display:flex;flex-direction:column;gap:3px;"><div style="display:flex;gap:3px;">${dT.slice(0,4).join('')}</div><div style="display:flex;gap:3px;">${aT.slice(0,4).join('')}</div></div>`;
     return deg===0?grid:rotateTile(grid,deg,GW,GH);
   }
+  const nameStyle=`font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;max-width:60px;text-overflow:ellipsis;`;
+  const nameV=`font-size:10px;font-weight:500;writing-mode:vertical-rl;white-space:nowrap;overflow:hidden;max-height:60px;text-overflow:ellipsis;`;
   let ctr='';
   if(G.at){ctr=`${mkT(G.at,'md',{atk:true,anim:isNew})}`;}
   else if(G.ph==='parent_def'){ctr=`<svg class="gt md fd" width="44" height="50" viewBox="0 0 44 50"><polygon class="gb" points="22,2 40.9,11 44,50 0,50 3.1,11"/></svg><div style="font-size:13px;color:var(--text2);margin-top:4px;">守り牌</div>`;}
   else{ctr=`<div style="font-size:13px;color:var(--text3);">${G.ph==='idle'?'—':'待機中'}</div>`;}
   cb.innerHTML=`<div style="position:relative;width:400px;height:400px;background:var(--bg);border-radius:8px;">
-    <div style="position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[2],degs[2])}</div>
-    <div style="position:absolute;left:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[3],degs[3])}</div>
-    <div style="position:absolute;right:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[1],degs[1])}</div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">${pg(pids[0],degs[0])}</div>
+    <div style="position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:100%;">
+        <div style="${nameStyle}color:${tc(pids[2])};">${nc(pids[2])}</div>
+        ${pg(pids[2],degs[2])}
+      </div>
+    </div>
+    <div style="position:absolute;left:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">
+      <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;height:100%;">
+        <div style="${nameV}color:${tc(pids[3])};">${nc(pids[3])}</div>
+        ${pg(pids[3],degs[3])}
+      </div>
+    </div>
+    <div style="position:absolute;right:0;top:96px;bottom:96px;width:96px;display:flex;align-items:center;justify-content:center;">
+      <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;height:100%;">
+        ${pg(pids[1],degs[1])}
+        <div style="${nameV}color:${tc(pids[1])};transform:rotate(180deg);">${nc(pids[1])}</div>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:100%;">
+        ${pg(pids[0],degs[0])}
+        <div style="${nameStyle}color:${tc(pids[0])};">${nc(pids[0])}</div>
+      </div>
+    </div>
     <div style="position:absolute;top:96px;left:96px;right:96px;bottom:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--bg2);border-radius:6px;">${ctr}</div>
   </div>`;
 }
@@ -978,9 +1004,11 @@ function toggleSub(){
   btn.textContent=show?'📋 閉じる':'📋 詳細';
 }
 
+function getMyName(){return document.getElementById('playerName').value.trim()||'ホスト';}
 function NET_create(){
   const code=genCode();NET.roomCode=code;NET.mode='host';
-  NET.myConnId='host';NET.seats=['host',null,null,null];NET.connNames={'host':'ホスト'};
+  const myName=document.getElementById('playerName').value.trim()||'ホスト';
+  NET.myConnId='host';NET.seats=['host',null,null,null];NET.connNames={'host':myName};
   syncSeats();NET.started=false;
   document.getElementById('codeDisp').textContent=code;
   document.getElementById('lv-hint').textContent='このコードを他のプレイヤーに伝えてください';
@@ -1014,7 +1042,11 @@ function NET_join(){
   NET.peer=new Peer(PEER_CFG);
   NET.peer.on('open',()=>{
     NET.hostConn=NET.peer.connect(PEER_PFX+code,{reliable:true});
-    NET.hostConn.on('open',()=>pstatus('ホストへ接続しました'));
+    NET.hostConn.on('open',()=>{
+      const myName=document.getElementById('playerName').value.trim()||'ゲスト';
+      NET.hostConn.send({type:'hello',name:myName});
+      pstatus('ホストへ接続しました');
+    });
     NET.hostConn.on('data',data=>clientHandleMsg(data));
     NET.hostConn.on('close',()=>{if(document.getElementById('gw').style.display!=='none'){alert('ホストから切断されました');}});
   });
@@ -1042,6 +1074,10 @@ function NET_back(){
 function hostHandleClientMsg(connPid,data){
   if(data.type==='action'){hostHandleAction(NET.seats.indexOf(connPid),data.action);}
   else if(data.type==='seat_req'){hostChangeSeat(connPid,data.seat);}
+  else if(data.type==='hello'){
+    NET.connNames[connPid]=data.name||`P${connPid+1}`;
+    syncSeats();broadcastSeatUpdate();
+  }
 }
 function clientHandleMsg(data){
   if(data.type==='welcome'){
