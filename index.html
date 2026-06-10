@@ -135,6 +135,7 @@
     <div class="ns" id="lv-hint"></div>
     <div id="slots" style="width:100%;display:flex;flex-direction:column;gap:6px;"></div>
     <div id="lobbyMsg" style="font-size:13px;color:var(--text2);text-align:center;min-height:18px;"></div>
+    <div id="swapWrap" style="display:none;width:100%;max-width:360px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 14px;margin-top:4px;"></div>
     <div id="startWrap" style="display:none;flex-direction:column;align-items:center;gap:6px;">
       <button id="startBtn" onclick="NET_hostStart()" style="font-size:15px;padding:12px 36px;">ゲーム開始！</button>
       <div style="font-size:11px;color:var(--text3);">2〜4人で開始できます。空き席はCPUが担当します。</div>
@@ -815,7 +816,13 @@ function renderCB(){
   const nc=pid=>NET.names[pid]||`P${pid+1}`;
   const ncRev=pid=>(NET.names[pid]||`P${pid+1}`).split('').reverse().join('');
   const tc=pid=>team(pid)===0?'var(--danger)':'var(--info)';
-  const parentStyle=pid=>G.atr===pid?'font-weight:700;color:#2a9d5c!important;':'';
+  const activePid=()=>{
+    if(G.ph==='parent_def'||G.ph==='parent_atk')return G.atr;
+    if(G.ph==='player_recv'||G.ph==='player_atk')return G.responder;
+    if(G.ph==='respond'&&G.rq)return G.rq[G.ri];
+    return -1;
+  };
+  const parentStyle=pid=>activePid()===pid?'font-weight:700;color:#2a9d5c!important;':'';
   const nameEl=(pid,style)=>`<div style="${style}color:${tc(pid)};${parentStyle(pid)}">${nc(pid)}</div>`;
   const nameElV=(pid,style)=>`<div style="${style}color:${tc(pid)};${parentStyle(pid)}">${nc(pid)}</div>`;
   const nameElVR=(pid,style)=>`<div style="${style}color:${tc(pid)};${parentStyle(pid)}">${ncRev(pid)}</div>`;
@@ -944,6 +951,14 @@ function hostChangeSeat(connId,newSeat){
 }
 
 // 席変更リクエスト（クライアントから呼ばれる）
+function doSwap(){
+  if(NET.mode!=='host')return;
+  const sA=parseInt(document.getElementById('swapA').value);
+  const sB=parseInt(document.getElementById('swapB').value);
+  if(isNaN(sA)||isNaN(sB)||sA===sB)return;
+  const tmp=NET.seats[sA];NET.seats[sA]=NET.seats[sB];NET.seats[sB]=tmp;
+  syncSeats();broadcastSeatUpdate();
+}
 function requestSeat(seat){
   if(NET.seats[seat]!==null&&NET.seats[seat]!==NET.myConnId){return;}
   if(NET.mode==='host'){hostChangeSeat('host',seat);}
@@ -968,6 +983,23 @@ function updateLobby(){
   const humanCount=NET.seats.filter(s=>s!==null).length;
   document.getElementById('lobbyMsg').textContent=NET.mode==='host'?`${humanCount}/4 人着席中（チーム：下・上 vs 右・左）`:`接続済み (${humanCount}/4)`;
   const sw=document.getElementById('startWrap');sw.style.display=NET.mode==='host'&&humanCount>=1?'flex':'none';
+  // 席入れ替えUI（ホスト＋2人以上着席時）
+  const swapWrap=document.getElementById('swapWrap');
+  if(NET.mode==='host'&&humanCount>=2){
+    const occupied=[0,1,2,3].filter(i=>NET.seats[i]!==null);
+    const opts=occupied.map(i=>`<option value="${i}">${seatLabels[i]}：${NET.connNames[NET.seats[i]]||`P${i+1}`}</option>`).join('');
+    swapWrap.style.display='block';
+    swapWrap.innerHTML=`<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">席の入れ替え</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="swapA" class="ninput" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">${opts}</select>
+        <span style="color:var(--text2);font-size:16px;">↔</span>
+        <select id="swapB" class="ninput" style="flex:1;min-width:0;font-size:12px;padding:6px 8px;">${opts}</select>
+        <button onclick="doSwap()" class="secondary" style="font-size:12px;padding:6px 14px;">入れ替え</button>
+      </div>`;
+  } else {
+    swapWrap.style.display='none';
+    swapWrap.innerHTML='';
+  }
 }
 
 function updatePlayerInfo(){
