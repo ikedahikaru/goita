@@ -682,26 +682,29 @@ function hostCheckTeyaku(){
       '白組の2人がともに五し！<br><strong>白組が150点獲得・試合勝利！</strong>',
       [{label:'結果へ',act:'end'}],-1,{name:'end',tw:1});return;
   }
-  const p0Has=goshi.includes(0);
-  if(p0Has){
-    const partnerPid=2;
-    const shiH=G.h[0].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false}));
+  // 五し宣言した人間プレイヤーを探す
+  const humanGoshi=goshi.filter(p=>isHuman(p));
+  if(humanGoshi.length>0){
+    const gp=humanGoshi[0]; // 五しを持つ人間プレイヤーのseat
+    const partnerPid=(gp+2)%4;
+    const shiH=G.h[gp].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false}));
     if(isHuman(partnerPid)){
       // 対面が人間プレイヤー → 対面に返答させる
-      showTy('五し（ごし）','あなた（紅組）',shiH,
-        `し駒5枚を公開。<br>上家（味方）、返答を選んでください。`,
+      showTy('五し（ごし）',playerLabel(gp),shiH,
+        `し駒5枚を公開。<br>${playerLabel(partnerPid)}（味方）、返答を選んでください。`,
         [{label:'そのまま続ける',act:'goshi_cont'},{label:'配り直す',act:'goshi_redeal'}],
         partnerPid,{name:'goshi',humanPartner:true});
     } else {
       // 対面がCPU → 条件により自動判断
       G.goshiCpuCont=cpuGoshiDecide(partnerPid,G.h[partnerPid]);
       const dec=G.goshiCpuCont?'そのまま続ける':'配り直す';
-      showTy('五し（ごし）','あなた（紅組）',shiH,
+      showTy('五し（ごし）',playerLabel(gp),shiH,
         `し駒5枚を公開。<br>上家（味方）：「<strong>${dec}</strong>」`,
         [{label:'わかった',act:'next'}],
-        0,{name:'goshi',humanPartner:false});
+        gp,{name:'goshi',humanPartner:false});
     }
   } else {
+    // 人間プレイヤーなし → CPU同士の五し
     const fp=goshi[0];
     showTy('五し（ごし）',playerLabel(fp),G.h[fp].filter(t=>t==='し').slice(0,5).map(t=>({t,hidden:false})),
       `${playerLabel(fp)}が五しを宣言。<br>そのまま勝負を続けます。`,
