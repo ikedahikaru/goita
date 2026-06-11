@@ -1130,6 +1130,7 @@ function hostHandleClientMsg(connPid,data){
     const tmp=NET.seats[myS];NET.seats[myS]=NET.seats[ts];NET.seats[ts]=tmp;
     syncSeats();broadcastSeatUpdate();
   }
+  else if(data.type==='leave'){
     const s=NET.seats.indexOf(connPid);if(s!==-1)NET.seats[s]=null;
     delete NET.conns[connPid];delete NET.connNames[connPid];
     syncSeats();broadcastSeatUpdate();
