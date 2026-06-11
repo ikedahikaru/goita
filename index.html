@@ -941,33 +941,27 @@ function syncSeats(){
 }
 
 // 席変更（ホストのみ実行）
-function hostChangeSeat(connId,newSeat){
-  if(NET.seats[newSeat]!==null&&NET.seats[newSeat]!==connId)return; // 既に他の人が座っている
-  const old=NET.seats.indexOf(connId);
-  if(old!==-1)NET.seats[old]=null;
-  NET.seats[newSeat]=connId;
+function broadcastSeatUpdate(){
   syncSeats();
-  // 全クライアントに通知
   const msg={type:'seat_update',seats:[...NET.seats],connNames:{...NET.connNames}};
   Object.values(NET.conns).forEach(c=>{try{c.send(msg);}catch(e){}});
   updateLobby();
 }
-
-// 席変更リクエスト（クライアントから呼ばれる）
-function doSwap(){
-  if(NET.mode!=='host')return;
-  const sA=parseInt(document.getElementById('swapA').value);
-  const sB=parseInt(document.getElementById('swapB').value);
-  if(isNaN(sA)||isNaN(sB)||sA===sB)return;
-  const tmp=NET.seats[sA];NET.seats[sA]=NET.seats[sB];NET.seats[sB]=tmp;
-  syncSeats();broadcastSeatUpdate();
+function hostChangeSeat(connId,newSeat){
+  if(NET.seats[newSeat]!==null&&NET.seats[newSeat]!==connId)return;
+  const old=NET.seats.indexOf(connId);
+  if(old!==-1)NET.seats[old]=null;
+  NET.seats[newSeat]=connId;
+  broadcastSeatUpdate();
 }
+
+// 席入れ替え（クライアントから呼ばれる）
 function requestSwap(targetSeat){
   const myCurrentSeat=NET.seats.indexOf(NET.myConnId);
   if(myCurrentSeat===-1)return;
   if(NET.mode==='host'){
     const tmp=NET.seats[myCurrentSeat];NET.seats[myCurrentSeat]=NET.seats[targetSeat];NET.seats[targetSeat]=tmp;
-    syncSeats();broadcastSeatUpdate();
+    broadcastSeatUpdate();
   } else {
     try{NET.hostConn.send({type:'swap_req',targetSeat});}catch(e){}
   }
@@ -1074,7 +1068,8 @@ function NET_create(){
     if(seat!==-1){NET.seats[seat]=connPid;syncSeats();}
     conn.on('open',()=>{
       conn.send({type:'welcome',connId:connPid,seats:[...NET.seats],connNames:{...NET.connNames},roomCode:code});
-      updateLobby();
+      // 既存クライアントにも新規入室を通知
+      broadcastSeatUpdate();
     });
     conn.on('data',data=>hostHandleClientMsg(connPid,data));
     conn.on('close',()=>{
@@ -1128,12 +1123,12 @@ function hostHandleClientMsg(connPid,data){
     const myS=NET.seats.indexOf(connPid);const ts=data.targetSeat;
     if(myS===-1||ts<0||ts>3)return;
     const tmp=NET.seats[myS];NET.seats[myS]=NET.seats[ts];NET.seats[ts]=tmp;
-    syncSeats();broadcastSeatUpdate();
+    broadcastSeatUpdate();
   }
   else if(data.type==='leave'){
     const s=NET.seats.indexOf(connPid);if(s!==-1)NET.seats[s]=null;
     delete NET.conns[connPid];delete NET.connNames[connPid];
-    syncSeats();broadcastSeatUpdate();
+    broadcastSeatUpdate();
   }
 }
 function clientHandleMsg(data){
